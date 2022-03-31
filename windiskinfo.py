@@ -70,11 +70,9 @@ class Partition(object):
     """
 
     def __init__(self, partition) -> None:
-        self.path = 
-
-    def get_path(self) -> str:
-        """Get a path usable for raw access."""
-        pass
+        self._set_labels(partition)
+        self.size = partition.Size
+        
 
     def get_size(self) -> int:
         """Get the partition size in bytes."""
