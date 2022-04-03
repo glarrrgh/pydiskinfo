@@ -1,15 +1,113 @@
-import re
+"""A module for getting information about block devices in a system.
 
-import wmi
+The diskinfo module is not a replacement for modules for gaining 
+file or filesystem information. It is mostly a supplement, for those 
+rare situations when you need to know more about the physical devices rather 
+than the filesystems and files on them. I made the module because I needed 
+path information to be able to read byte for byte off of hard drives. If other 
+uses arise, I may be compelled to extend the module.
+
+The module depends on the wmi module, when run on a windows system. No
+extra modules need to be installed on linux systems. The linux functionality 
+depends heavily on sysfs, so it will probably not work on other unix like systems, 
+that often do not come with sysfs.
+
+Copyright (c) 2022 Lars Henrik Ericson
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
+
+import sys
+
+if sys.platform == 'win32':
+    import wmi
 
 
-class Disk(object):
+class DiskInfoParseError(Exception):
+    """General exception raised during system parsing. 
+    
+    It will be raised when parsing fails for some reason. The instance will 
+    then be empty. Catching this exception will be the proper way to detect 
+    that the instance should be discarded. Usually any user have access to 
+    this information. But if this is raised, it is usually because of access 
+    rights."""
+
+    def __init__(self, message, status):
+        super().__init__(message, status)
+        self.message = "Failed to parse the system information"
+        self.status = status
+
+
+class System:
+    """Reads and contains information about the block devices on the system.
+    
+    This is probably the only class you need to instanciate. It will contain 
+    information about all discovered block devices on the system. You can 
+    access information based on physical drives, partitions on those drives, 
+    and volumes(windows) or mount points(linux). """
+
+    def __new__(cls, name: str = "System"):
+        if sys.platform == "win32":
+            return super().__new__(WindowsSystem)
+        return super().__new__(cls)
+
+    def __init__(self, name: str = "System") -> None:
+        self._name = name
+        self._drives = []
+        self._partitions = []
+        self._volumes = []
+        self._parse_system()
+
+    def _parse_system(self) -> None:
+        self._drives.append("test linux drive")
+
+    def __str__(self) -> str:
+        return repr(self._drives)
+
+class WindowsSystem(System):
+    """This is an inherited version of the System class.
+    
+    This class will take care of the special cases when the module is runnning 
+    on windows."""  
+
+    def _parse_system(self) -> None:
+        """Parse the system"""
+        try:
+            cursor = wmi.WMI()            
+        except wmi.x_access_denied as err:
+            raise DiskInfoParseError from err
+            pass
+        except wmi.x_wmi_authentication as err:
+            raise DiskInfoParseError from err
+            pass
+        self._drives.append("test windows drive")
+
+
+class PhysicalDrive(object):
     """Contains information about physical and logical disks device like raid
-        or spanned devices (not partitons).
-        """
+    or spanned devices (not partitons).
+    """
 
     def __init__(self, physical_disk: wmi._wmi_object) -> None:
         self._disk = physical_disk
+        self.partitons = []
         self._set_size()
         self._set_path()
         self.media_type = physical_disk.MediaType
@@ -86,6 +184,8 @@ class Partition(object):
 
     def __init__(self, partition) -> None:
         self._partition = partition
+        self.disk = None
+        self.volume = None
         self._set_volumes()
         self._set_size()
         self._set_partition_table_type()
@@ -181,11 +281,10 @@ def get_disks(computer: str = "", username: str = "", password: str = "") -> lis
         return None
     except wmi.x_wmi_authentication as err:
         return None
-    disks = [Disk(physical_disk) for physical_disk in wmi_cursor.Win32_DiskDrive()]
+    disks = [PhysicalDrive(physical_disk) for physical_disk in wmi_cursor.Win32_DiskDrive()]
     return disks
 
 
 if __name__ == "__main__":
-    disks = get_disks()
-    for each_disk in disks:
-        print(each_disk)
+    disk = System()
+    print(str(disk))
