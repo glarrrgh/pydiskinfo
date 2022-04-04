@@ -39,6 +39,8 @@ import sys
 if sys.platform == 'win32':
     import wmi
 
+MEDIA_TYPES = []
+
 
 class DiskInfoParseError(Exception):
     """General exception raised during system parsing. 
@@ -64,9 +66,13 @@ class System:
     and volumes(windows) or mount points(linux). """
 
     def __new__(cls, name: str = "System"):
+        """If on windows, create a WIndowsSystem object instead."""
+        created_object = None
         if sys.platform == "win32":
-            return super().__new__(WindowsSystem)
-        return super().__new__(cls)
+            created_object =  super().__new__(WindowsSystem)
+        elif sys.platform == "linux":
+            created_object =  super().__new__(LinuxSystem)
+        return created_object
 
     def __init__(self, name: str = "System") -> None:
         self._name = name
@@ -76,10 +82,15 @@ class System:
         self._parse_system()
 
     def _parse_system(self) -> None:
-        self._drives.append("test linux drive")
+        """To be overloaded by subclasses"""
+        pass
 
     def __str__(self) -> str:
         return repr(self._drives)
+
+class LinuxSystem(System):
+    def _parse_system(self) -> None:
+        pass
 
 class WindowsSystem(System):
     """This is an inherited version of the System class.
@@ -93,28 +104,34 @@ class WindowsSystem(System):
             cursor = wmi.WMI()            
         except wmi.x_access_denied as err:
             raise DiskInfoParseError from err
-            pass
         except wmi.x_wmi_authentication as err:
             raise DiskInfoParseError from err
-            pass
-        self._drives.append("test windows drive")
+        self._drives = [WindowsPhysicalDrive(drive) for drive in cursor.Win32_DiskDrive()]
+        self._volumes = [WindowsVolume(volume) for volume in cursor.Win32_DiskDrive())]
+        self._partitions = [WindowsPartition(partition) for partition in cursor.Win32_DiskPartition()]
 
 
-class PhysicalDrive(object):
-    """Contains information about physical and logical disks device like raid
-    or spanned devices (not partitons).
-    """
+class PhysicalDrive:
+    """Contains information about physical drives."""
 
-    def __init__(self, physical_disk: wmi._wmi_object) -> None:
-        self._disk = physical_disk
-        self.partitons = []
-        self._set_size()
-        self._set_path()
-        self.media_type = physical_disk.MediaType
-        self.caption = physical_disk.Caption
-        self._set_partitions(physical_disk)
-
-
+    def __init__(self) -> None:
+        self._partitions = []
+        self._size = 0
+        self._drive_number = 0
+        self._path = ""
+        self._media_type = ""
+        self._serial_number = ""
+        self._model = ""
+        self._sectors = 0
+        self._heads = 0
+        self._cylinders = 0
+        self._bytes_per_sector = 0
+        self._firmware = ""
+        self._disk_number = -1
+        self._interface_type = ""
+        self._media_loaded = False
+        self._status = ""
+    
     def get_path(self) -> str:
         """Get a path usable for raw access."""
         return self.path
@@ -140,25 +157,10 @@ class PhysicalDrive(object):
     def get_caption(self) -> str:
         """Get model name and maybe manufacturer"""
         return self.caption
-
-    def _set_size(self) -> None:
-        """private: extract size from a wmi object"""
-        try:
-            self.size = int(self._disk.Size)
-        except ValueError:
-            self.size = -1
-
-    def _set_path(self) -> None:
-        """private: extract the disk path from a wmi object"""
-        try:
-            self.path = self._disk.DeviceID
-            self.disk_number = int(self.path.split('PHYSICALDRIVE')[-1])
-        except IndexError:
-            self.path = ""
-            self.disk_number = -1
-        except ValueError:
-            self.path = ""
-            self.disk_number = -1
+    
+    def set_path(self, path: str) -> None:
+        """Set drive access path and drive number."""
+        self.path = path
 
     def __str__(self) -> str:
         """Overloading the string method"""
@@ -169,12 +171,41 @@ class PhysicalDrive(object):
         except IndexError:
             return disk
 
-    def _set_partitions(self, physical_disk: wmi._wmi_object) -> None:
+
+class WindowsPhysicalDrive(PhysicalDrive):
+    """Subclass of PhysicalDrive that handles special windows situations"""
+    def __init__(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        super().__init__()
+        self._set_partitions(wmi_physical_disk)
+        self._set_size(wmi_physical_disk)
+        self._set_drive_number(wmi_physical_disk)
+        self.path = wmi_physical_disk.DeviceID
+        self._set_media_type = 
+        
+    def _set_partitions(self, wmi_physical_disk: wmi._wmi_object) -> None:
         """Private method that parses the partitons"""
-        self.partitions = [ Partition(each_partition) for each_partition in physical_disk.associators('Win32_DiskDriveToDiskPartition') ]
+        self.partitions = [ WindowsPartition(partition, self) for partition in wmi_physical_disk.associators('Win32_DiskDriveToDiskPartition') ]
+
+    def _set_size(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        """set size of disk in bytes."""
+        try:
+            self.size = int(wmi_physical_disk.Size)
+        except ValueError:
+            self.size = -1
+
+    def _set_drive_number(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        """set system drive identification number"""
+        try:
+            self.disk_number = int(wmi_physical_disk.Index)
+        except IndexError:
+            self.disk_number = -1
+        except ValueError:
+            self.path = ""
+            self.disk_number = -1
 
 
-class Partition(object):
+
+class Partition():
     """Contains information about partitions. This includes logical disk, 
     or 'volume' information. The same volume may span several disks, and the 
     filesystem of the partition, will in those cases be the filesystem of the 
