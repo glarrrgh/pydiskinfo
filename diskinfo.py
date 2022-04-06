@@ -34,7 +34,6 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from logging.config import valid_ident
 import sys
 
 if sys.platform == 'win32':
@@ -70,6 +69,7 @@ def human_readable_units(value: int, unit: str = 'auto', type: str = 'B') -> str
             'I': binary bytes (KiB for instance)
        If unit is specified, type will be ignored.
     """
+    return_unit = unit
     if unit == 'auto':
         if type == 'M':
             for each_unit in ('P', 'T', 'G', 'M', 'K', ''):
@@ -111,7 +111,7 @@ class DiskInfoParseError(Exception):
     
     It will be raised when parsing fails for some reason. The instance will 
     then be empty. Catching this exception will be the proper way to detect 
-    that the instance should be discarded. Usually any user have access to 
+    that the instance should be diskarded. Usually any user have access to 
     this information. But if this is raised, it is usually because of access 
     rights."""
 
@@ -125,7 +125,7 @@ class System:
     """Reads and contains information about the block devices on the system.
     
     This is probably the only class you need to instanciate. It will contain 
-    information about all discovered block devices on the system. You can 
+    information about all diskovered block devices on the system. You can 
     access information based on physical drives, partitions on those drives, 
     and volumes(windows) or mount points(linux). """
 
@@ -141,7 +141,9 @@ class System:
     def __init__(self, name: str = "System") -> None:
         self._name = name
         self._type = "generic"
-        self._disks = []
+        self._disks = set()
+        self._partitions = set()
+        self._logical_disks = set()
         self._parse_system()
 
     def get_name(self) -> str:
@@ -185,7 +187,32 @@ class WindowsSystem(System):
             raise DiskInfoParseError from err
         except wmi.x_wmi_authentication as err:
             raise DiskInfoParseError from err
-        self._disks = [WindowsPhysicalDisk(disk, self) for disk in cursor.Win32_DiskDrive()]
+        for each_disk in cursor.Win32_DiskDrive():
+            disk = WindowsPhysicalDisk(each_disk, self)
+            self._disks.add(disk)
+            for each_partition in each_disk.associators('Win32_DiskDriveToDiskPartition'):
+                partition = WindowsPartition(each_partition, disk)
+                new_partition = True
+                for each_existing_partition in self._partitions:
+                    if each_existing_partition.get_device_id() == partition.get_device_id():
+                        partition = each_existing_partition
+                        new_partition = False
+                        break
+                disk.add_partition(partition)
+                if new_partition:
+                    self._partitions.add(partition)
+                for each_logical_disk in each_partition.associators('Win32_LogicalDiskToPartition'):
+                    logical_disk = WindowsLogicalDisk(each_logical_disk, self)
+                    new_logical_disk = True
+                    for each_existing_logical_disk in self._logical_disks:
+                        if each_existing_logical_disk.get_device_id() == logical_disk.get_device_id():
+                            logical_disk = each_existing_logical_disk
+                            new_logical_disk = False
+                            break
+                    if new_logical_disk:
+                        self._logical_disks.add(logical_disk)
+                    logical_disk.add_partition(partition)
+                    partition.add_logical_disk(logical_disk)                  
         
 
 class PhysicalDisk:
@@ -193,9 +220,10 @@ class PhysicalDisk:
 
     def __init__(self, system: System) -> None:
         self._system = system
-        self._partitions = []
+        self._partitions = set()
         self._size = 0
         self._drive_number = -1
+        self._device_id = ""
         self._path = ""
         self._media_type = ""
         self._serial_number = ""
@@ -213,9 +241,9 @@ class PhysicalDisk:
         """Get the system that this disk is connected to."""
         return self._system
     
-    def get_partitions(self) -> list:
-        """Get a copy of the list of Partition objects connected to this disk."""
-        return self._partitions[:]
+    def get_partitions(self) -> set:
+        """Get a set of Partition objects connected to this disk."""
+        return self._partitions
 
     def get_size(self) -> int:
         """Get the disk size in bytes."""
@@ -287,37 +315,37 @@ class PhysicalDisk:
 
     def __str__(self) -> str:
         """Overloading the string method"""
-        disk = ", ".join(("Disk {}".format(self.get_disk_number()), self.get_path(), self.get_media_type(), human_readable_units(self.get_size())))
+        disk = 'Disk: ' + ", ".join(("Disk {}".format(self.get_disk_number()), self.get_path(), self.get_media_type(), human_readable_units(self.get_size())))
         partitions = ["\n".join(["  " + line for line in str(partition).split("\n")]) for partition in self._partitions]
         return "\n".join( (disk, *partitions ) )
 
 class LinuxPhysicalDisk(PhysicalDisk):
-    pass
+    def __init__(self, system: System) -> None:
+        super().__init__(system)
 
 
 class WindowsPhysicalDisk(PhysicalDisk):
     """Subclass of PhysicalDrive that handles special windows situations"""
     def __init__(self, wmi_physical_disk: wmi._wmi_object, system: System) -> None:
         super().__init__(system)
-        self._set_partitions(wmi_physical_disk)
         self._set_size(wmi_physical_disk)
         self._set_disk_number(wmi_physical_disk)
-        self._path = wmi_physical_disk.DeviceID
-        self._set_media_type = wmi_physical_disk.MediaType
-        self._serial_number = wmi_physical_disk.SerialNumber
-        self._model = wmi_physical_disk.Model
+        self._set_device_id_and_path(wmi_physical_disk)
+        self._set_media_type(wmi_physical_disk)
+        self._set_serial_number(wmi_physical_disk)
+        self._set_model(wmi_physical_disk)
         self._set_sectors(wmi_physical_disk)
         self._set_heads(wmi_physical_disk)
         self._set_cylinders(wmi_physical_disk)
         self._set_bytes_per_sector(wmi_physical_disk)
         self._set_firmware(wmi_physical_disk)
-        self._interface_type = wmi_physical_disk.InterfaceType
-        self._media_loaded = wmi_physical_disk.MediaLoaded
-        self._status = wmi_physical_disk.Status
+        self._set_interface_type(wmi_physical_disk)
+        self._set_media_loaded(wmi_physical_disk)
+        self._set_status(wmi_physical_disk)
         
-    def _set_partitions(self, wmi_physical_disk: wmi._wmi_object) -> None:
-        """Private method that parses the partitons"""
-        self._partitions = [ WindowsPartition(partition, self) for partition in wmi_physical_disk.associators('Win32_DiskDriveToDiskPartition') ]
+    def add_partition(self, partition: 'Partition') -> None:
+        """add a Partition object to the disk."""
+        self._partitions.add(partition)
 
     def _set_size(self, wmi_physical_disk: wmi._wmi_object) -> None:
         """set size of disk in bytes."""
@@ -332,6 +360,32 @@ class WindowsPhysicalDisk(PhysicalDisk):
             self._disk_number = int(wmi_physical_disk.Index)
         except ValueError:
             self._disk_number = -1
+
+    def _set_device_id_and_path(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._path = wmi_physical_disk.DeviceID
+            self._device_id = self._path
+        except AttributeError:
+            self._path = ""
+            self._device_id = ""
+
+    def _set_media_type(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._media_type = wmi_physical_disk.MediaType
+        except AttributeError:
+            self._media_type = ""
+
+    def _set_serial_number(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._serial_number = wmi_physical_disk.SerialNumber
+        except AttributeError:
+            self._serial_number = ""
+
+    def _set_model(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._model = wmi_physical_disk.Model
+        except AttributeError:
+            self._model = ""
 
     def _set_sectors(self, wmi_physical_disk: wmi._wmi_object) -> None:
         """Set total number of sectors, or -1 if not a number."""
@@ -368,6 +422,24 @@ class WindowsPhysicalDisk(PhysicalDisk):
         except AttributeError:
             self._firmware = "Unspecified"
 
+    def _set_interface_type(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._interface_type = wmi_physical_disk.InterfaceType
+        except AttributeError:
+            self._interface_type = ""
+
+    def _set_media_loaded(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._media_loaded = wmi_physical_disk.MediaLoaded
+        except AttributeError:
+            self._media_loaded = False
+
+    def _set_status(self, wmi_physical_disk: wmi._wmi_object) -> None:
+        try:
+            self._status = wmi_physical_disk.Status
+        except AttributeError:
+            self._status = ""
+
 
 class Partition:
     """Contains information about partitions. This includes logical disk, 
@@ -378,66 +450,422 @@ class Partition:
     """
 
     def __init__(self, disk: PhysicalDisk) -> None:
-        self.disk = disk
+        self._disk = disk
+        self._logical_disks = set()
+        self._blocksize = -1
+        self._bootable = False
+        self._boot_partition = False
+        self._description = ""
+        self._path = ""
+        self._device_id = ""
+        self._disk_number = -1
+        self._partition_number = -1
+        self._number_of_blocks = -1
+        self._primary_partition = False
+        self._size = 0
+        self._starting_offset = -1
+        self._type = ""
+
+    def get_disk(self) -> PhysicalDisk:
+        """Get the disk the partition is part of."""
+        return self._disk
+
+    def add_logical_disk(self, logical_disk: 'LogicalDisk') -> None:
+        """Set the logical disk connected to this partition."""
+        new_logical_disk = True
+        for each_logical_disk in self._logical_disks:
+            if each_logical_disk.get_device_id() == logical_disk.get_device_id():
+                new_logical_disk = False
+        if new_logical_disk:
+            self._logical_disks.add(logical_disk)
+
+    def get_logical_disks(self) -> set:
+        """Get the logical disk connected to this partition."""
+        return self._logical_disks
+
+    def get_blocksize(self) -> int:
+        """Get the blocksize of the partition."""
+        return self._blocksize
+
+    def is_bootable(self) -> bool:
+        """If the partition is able to be used as a boot device."""
+        return self._bootable
+
+    def is_boot_partition(self) -> bool:
+        """If the partition is a system boot partition."""
+        return self._boot_partition
+
+    def get_description(self) -> str:
+        """A description of the system. Often includes partition table type."""
+        return self._description
+
+    def get_path(self) -> str:
+        """Path to open partition for raw read. 
+        
+        Not available on windows. Open disk and use the starting offset and 
+        size of the partition to raw read the partition.
+        """
+        return self._path
+
+    def get_device_id(self) -> str:
+        """Device id. It should be unique for the partition."""
+        return self._device_id
+
+    def get_disk_number(self) -> int:
+        """Disk number of the parent disk of the partition."""
+        return self._disk_number
+
+    def get_partition_number(self) -> int:
+        """The partition index on the disk. 
+        
+        Each disk may have a partition numbered 0.
+        """
+        return self._partition_number
+
+    def Get_number_of_blocks(self) -> int:
+        """The amount of blocks in the partition."""
+        return self._number_of_blocks
+
+    def is_primary_partition(self) -> bool:
+        """If the partition is a primary partition."""
+        return self._primary_partition
 
     def get_size(self) -> int:
-        """Get the partition size in bytes."""
-        return self.size
+        """Partition size in bytes."""
+        return self._size
 
-    def get_descriptor(self) -> str:
-        """Get a descriptor of the partition"""
-        return self.descriptor
+    def get_starting_offset(self) -> int:
+        """Byte offset that the partition starts at."""
+        return self._starting_offset
 
-    def get_partiton_table_type(self) -> str:
-        """get the partition table type"""
-        return self.partition_table_type
+    def get_type(self) -> str:
+        """A description of the partition type."""
+        return self._type
 
     def __str__(self) -> str:
         """overloading the __str__ method"""
-        partition = ", ".join((self.get_descriptor(), self.get_partiton_table_type(), human_readable_units(self.get_size())))
-        return "\n".join((partition, ))
+        partition = 'Partition: ' + ", ".join(('ID: ' + self.get_device_id(), 
+                                               'Type: ' + self.get_type(), 
+                                               'Size: ' + human_readable_units(self.get_size()), 
+                                               'Offset: '+ str(self.get_starting_offset())
+                                               ))
+        logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self.get_logical_disks()] 
+        return "\n".join((partition, *logical_disks))
 
 
 class LinuxPartition(Partition):
-    pass
+    def __init__(self, disk: PhysicalDisk) -> None:
+        super().__init__(disk)
 
 class WindowsPartition(Partition):
     def __init__(self, partition: wmi._wmi_object, disk: PhysicalDisk) -> None:
         super().__init__(disk)
-        self._set_descriptor(partition)
+        self._set_blocksize(partition)
+        self._set_bootable(partition)
+        self._set_boot_partition(partition)
+        self._set_description(partition)
+        self._set_device_id(partition)
+        self._set_disk_number(partition)
+        self._set_partition_number(partition)
+        self._set_number_of_blocks(partition)
+        self._set_primary_partition(partition)
         self._set_size(partition)
-        self._set_partition_table_type(partition)
+        self._set_starting_offset(partition)
+        self._set_type(partition)
 
-    def _set_descriptor(self, partition: wmi._wmi_object) -> None:
-        """private: extract partition descriptor from a wmi object"""
-        self.descriptor = partition.Name
+    def _set_blocksize(self, partition: wmi._wmi_object) -> None:
+        """Set blocksize or -1 if it fails."""
+        try:
+            self._blocksize = int(partition.BlockSize)
+        except AttributeError:
+            self._blocksize = -1
+        except ValueError:
+            self._blocksize = -1
+
+    def _set_bootable(self, partition: wmi._wmi_object) -> None:
+        """Set bootable or false if it fails."""
+        try:
+            self._bootable = partition.Bootable
+        except AttributeError:
+            self._bootable = False
+
+    def _set_boot_partition(self, partition: wmi._wmi_object) -> None:
+        """Set if system boot partition, or False if it fails."""
+        try:
+            self._boot_partition = partition.BootPartition
+        except AttributeError:
+            self._boot_partition = False
+
+    def _set_description(self, partition: wmi._wmi_object) -> None:
+        """set a description provided by the system."""
+        try:
+            self._description = partition.Description
+        except AttributeError:
+            self._description = ""
+
+    def _set_device_id(self, partition: wmi._wmi_object) -> None:
+        """set the device id provided by the system."""
+        try:
+            self._device_id = partition.DeviceID
+        except AttributeError:
+            self._device_id = ""
+
+    def _set_disk_number(self, partition: wmi._wmi_object) -> None:
+        """Set the disk index number as the system sees it."""
+        try:
+            self._disk_number = int(partition.DiskIndex)
+        except AttributeError:
+            self._disk_number = -1
+        except ValueError:
+            self._disk_number = -1
+
+    def _set_partition_number(self, partition: wmi._wmi_object) -> None:
+        """Set the partition index on the disk, according to the system."""
+        try:
+            self._partition_number = int(partition.Index)
+        except AttributeError:
+            self._partition_number = -1
+        except ValueError:
+            self._partition_number = -1
+
+    def _set_number_of_blocks(self, partition: wmi._wmi_object) -> None:
+        """Set number of blocks."""
+        try:
+            self._number_of_blocks = int(partition.NumberOfBlocks)
+        except AttributeError:
+            self._number_of_blocks = -1
+        except ValueError:
+            self._number_of_blocks = -1
+
+    def _set_primary_partition(self, partition: wmi._wmi_object) -> None:
+        """Set if the partition is a primary partition"""
+        try:
+            self._primary_partition = int(partition.PrimaryPartition)
+        except AttributeError:
+            self._primary_partition = False
 
     def _set_size(self, partition: wmi._wmi_object) -> None:
-        """private: extract size from a wmi object"""
+        """Set partition size in bytes."""
         try:
-            self.size = int(partition.Size)
+            self._size = int(partition.Size)
+        except AttributeError:
+            self._size = 0
         except ValueError:
-            self.size = 0
+            self._size = 0
 
-    def _set_partition_table_type(self, partition: wmi._wmi_object) -> None:
-        """private: extract partition table type from a wmi object"""
-        self.partition_table_type = partition.Type
+    def _set_starting_offset(self, partition: wmi._wmi_object) -> None:
+        """Set partition starting offset in bytes."""
+        try:
+            self._starting_offset = int(partition.StartingOffset)
+        except AttributeError:
+            self._starting_offset = -1
+        except ValueError:
+            self._starting_offset = -1
 
-    
+    def _set_type(self, partition: wmi._wmi_object) -> None:
+        """Set partition type."""
+        try:
+            self._type = partition.Type
+        except AttributeError:
+            self._type = ""
 
 
 class LogicalDisk:
     """Class for logical disks/mount points"""    
+
+    def __init__(self, system: System) -> None:
+        self._system = system
+        self._partitions = set()
+        self._description = ""
+        self._device_id = ""
+        self._drive_type = ""
+        self._file_system = ""
+        self._free_space = -1
+        self._maximum_component_length = -1
+        self._name = ""
+        self._path = ""
+        self._size = 0
+        self._volume_name = ""
+        self._volume_serial_number = ""
+
+    def get_system(self) -> System:
+        """Get the system this logical disk is present on."""
+        return self._system
+
+    def get_partitions(self) -> list:
+        """Get all partitions that are part of this logical disk."""
+        return self._partitions
+
+    def add_partition(self, partition: Partition) -> None:
+        """Add a partition to this logical disk"""
+        self._partitions.add(partition)
+
+    def get_description(self) -> str:
+        """Get the system provided description of the logical disk"""
+        return self._description
+
+    def get_device_id(self) -> str:
+        """Get the device ID"""
+        return self._device_id
+
+    def get_drive_type(self) -> str:
+        """Get drive type."""
+        return self._drive_type
+
+    def get_file_system(self) -> str:
+        """Get file system, according to the system"""
+        return self._file_system
+
+    def get_free_space(self) -> int:
+        """Get free space on the filesystem."""
+        return self._free_space
+
+    def get_maximum_component_length(self) -> int:
+        """Maximum path length, according to the system."""
+        return self._maximum_component_length
+
+    def get_name(self) -> str:
+        """Often the same as path."""
+        return self._name
+
+    def get_path(self) -> str:
+        """Get the mounted path to the logical disk. """
+        return self._path
+
+    def get_size(self) -> int:
+        """Get the size of the logical disk."""
+        return self._size
+
+    def get_volume_name(self) -> str:
+        """File system label value, or equivalent."""
+        return self._volume_name
+
+    def get_volume_serial_number(self) -> str:
+        """File system serial number."""
+        return self._volume_serial_number
     
     def __str__(self) -> str:
-        return "Logical Disk"
+        return "Logical Disk: " + ", ".join(("Path: " + self.get_path(), 
+                                             'Label: ' + self.get_volume_name(),
+                                             'File System: ' + self.get_file_system(),
+                                             'Free Space: ' + human_readable_units(self.get_free_space())
+                                           ))
 
 
 class LinuxLogicalDisk(LogicalDisk):
-    pass
+    def __init__(self, system: System) -> None:
+        super().__init__(system)
 
 class WindowsLogicalDisk(LogicalDisk):
-    pass
+    _DRIVETYPES = [ 'Unknown', 
+                    'No Root Directory', 
+                    'Removable Disk', 
+                    'Local Disk', 
+                    'Network Drive', 
+                    'Compact Disk',
+                    'RAM Disk'
+                    ]
+
+    def __init__(self, logical_disk: wmi._wmi_object, system: System) -> None:
+        super().__init__(system)
+        self._set_description(logical_disk)
+        self._set_device_id_and_path_and_name(logical_disk)
+        self._set_drive_type(logical_disk)
+        self._set_file_system(logical_disk)
+        self._set_free_space(logical_disk)
+        self._set_maximum_component_length(logical_disk)
+        self._set_size(logical_disk)
+        self._set_volume_name(logical_disk)
+        self._set_volume_serial_number(logical_disk)
+    
+    def _set_description(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the description"""
+        try:
+            self._description = logical_disk.Description
+            if not type(self._description) == str:
+                self._description = ""
+        except AttributeError:
+            self._description = ""
+
+    def _set_device_id_and_path_and_name(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the unique device ID and name. On windows this is pretty much the same as path."""
+        try:
+            self._device_id = logical_disk.DeviceID
+        except AttributeError:
+            self._device_id = ""
+        self._name = self._device_id
+        self._path = self._device_id + "\\"
+
+    def _set_drive_type(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the drive type."""
+        try:
+            drivetype = int(logical_disk.DriveType)
+        except AttributeError:
+            drivetype = 0
+        except ValueError:
+            drivetype = 0
+        try:
+            self._drive_type = self._DRIVETYPES[drivetype]
+        except IndexError:
+            self._drive_type = self._DRIVETYPES[0]
+
+    def _set_file_system(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the filesystem according to the system."""
+        try:
+            self._file_system = logical_disk.FileSystem
+            if type(self._file_system) != str:
+                self._file_system = ""
+        except AttributeError:
+            self._file_system = ""
+
+    def _set_free_space(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the available space on the filesystem in bytes"""
+        try:
+            self._free_space = int(logical_disk.FreeSpace)
+        except AttributeError:
+            self._free_space = -1
+        except ValueError:
+            self._free_space = -1
+        except TypeError:
+            self._free_space = -1
+
+    def _set_maximum_component_length(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the max path length in characters."""
+        try:
+            self._maximum_component_length = int(logical_disk.MaximumComponentLength)
+        except AttributeError:
+            self._maximum_component_length = -1
+        except ValueError:
+            self._maximum_component_length = -1
+        except TypeError:
+            self._maximum_component_length = -1
+
+    def _set_size(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the size in bytes."""
+        try:
+            self._size = int(logical_disk.Size)
+        except AttributeError:
+            self._size = 0
+        except ValueError:
+            self._size = 0
+        except TypeError:
+            self._size = 0
+
+    def _set_volume_name(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the volume name. Usually the Label value."""
+        try:
+            self._volume_name = logical_disk.VolumeName
+            if type(self._volume_name) != str:
+                self._volume_name = ""
+        except AttributeError:
+            self._volume_name = ""
+
+    def _set_volume_serial_number(self, logical_disk: wmi._wmi_object) -> None:
+        """Set the volume serial number."""
+        try:
+            self._volume_serial_number = logical_disk.VolumeSerialNumber
+        except AttributeError:
+            self._volume_serial_number = ""
 
 
 if __name__ == "__main__":
