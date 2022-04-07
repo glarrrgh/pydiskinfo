@@ -58,7 +58,11 @@ UNITS = { '': 1,
           'PiB': pow(1_024, 5)
         }
 
-def human_readable_units(value: int, unit: str = 'auto', type: str = 'B') -> str:
+def human_readable_units(value: int, 
+                         unit: str = 'auto', 
+                         value_type: str = 'B', 
+                         decimal_places: int=2
+                         ) -> str:
     """Converts an int to a string with a unit. 
     
        If unit is omitted, the function will choose a fitting unit.
@@ -68,26 +72,27 @@ def human_readable_units(value: int, unit: str = 'auto', type: str = 'B') -> str
             'M': no bytes (K for instance)
             'I': binary bytes (KiB for instance)
        If unit is specified, type will be ignored.
+       decimal_places describes number of places after the dot. It must be a 
+       number between and including 0 and 9.
     """
-    return_unit = unit
     if unit == 'auto':
-        if type == 'M':
+        if value_type == 'M':
             for each_unit in ('P', 'T', 'G', 'M', 'K', ''):
                 return_value = value/UNITS[each_unit]
+                return_unit = each_unit
                 if return_value > 1:
-                    return_unit = each_unit
-                    break
-        elif type == 'I':
+                    break            
+        elif value_type == 'I':
             for each_unit in ('PiB', 'TiB', 'GiB', 'MiB', 'KiB', 'B'):
                 return_value = value/UNITS[each_unit]
+                return_unit = each_unit
                 if return_value > 1:
-                    return_unit = each_unit
                     break
         else:
             for each_unit in ('PB', 'TB', 'GB', 'MB', 'KB', 'B'):
                 return_value = value/UNITS[each_unit]
+                return_unit = each_unit
                 if return_value > 1:
-                    return_unit = each_unit
                     break        
     else:
         return_unit = unit
@@ -95,7 +100,12 @@ def human_readable_units(value: int, unit: str = 'auto', type: str = 'B') -> str
             return_value = value/UNITS[unit]
         except KeyError:
             raise ReadableUnitError
-    return "{:.3f}{}".format(return_value, return_unit)
+    if type(decimal_places) != int or decimal_places < 0 or decimal_places > 9:
+        decimal_places = 2
+    if return_unit == 'B' or return_unit =='':
+        decimal_places = 0
+    format_string = "{:." + str(decimal_places) + "f}{}"
+    return format_string.format(return_value, return_unit)
 
 
 class ReadableUnitError(Exception):
@@ -159,9 +169,11 @@ class System:
         pass
 
     def __str__(self) -> str:
-        system = ", ".join(("System name: {}".format(self.get_name()), "System type/OS: {}".format(self.get_type())))
+        system = ", ".join(("System name: {}".format(self.get_name()), 
+                            "System type/OS: {}".format(self.get_type())
+                            ))
         disks = ["\n".join(["  {}".format(line) for line in str(disk).split("\n")]) for disk in self._disks]
-        return "\n".join((system, *disks))
+        return "\n".join((system, "", *disks))
 
 
 class LinuxSystem(System):
@@ -315,9 +327,15 @@ class PhysicalDisk:
 
     def __str__(self) -> str:
         """Overloading the string method"""
-        disk = 'Disk: ' + ", ".join(("Disk {}".format(self.get_disk_number()), self.get_path(), self.get_media_type(), human_readable_units(self.get_size())))
-        partitions = ["\n".join(["  " + line for line in str(partition).split("\n")]) for partition in self._partitions]
-        return "\n".join( (disk, *partitions ) )
+        disk = 'Disk -- ' + ", ".join(("Disk number: {}".format(self.get_disk_number()), 
+                                       "Path: " + self.get_path(), 
+                                       "Media Type: " + self.get_media_type(), 
+                                       "Size: " + human_readable_units(self.get_size())
+                                       ))
+        partitions = ["\n".join(
+                        ["  " + line for line in str(partition).split("\n")]) 
+                      for partition in self._partitions]
+        return "\n".join( (disk, *partitions, "" ) )
 
 class LinuxPhysicalDisk(PhysicalDisk):
     def __init__(self, system: System) -> None:
@@ -544,7 +562,7 @@ class Partition:
 
     def __str__(self) -> str:
         """overloading the __str__ method"""
-        partition = 'Partition: ' + ", ".join(('ID: ' + self.get_device_id(), 
+        partition = 'Partition -- ' + ", ".join(('ID: ' + self.get_device_id(), 
                                                'Type: ' + self.get_type(), 
                                                'Size: ' + human_readable_units(self.get_size()), 
                                                'Offset: '+ str(self.get_starting_offset())
@@ -680,7 +698,7 @@ class LogicalDisk:
         self._device_id = ""
         self._drive_type = ""
         self._file_system = ""
-        self._free_space = -1
+        self._free_space = 0
         self._maximum_component_length = -1
         self._name = ""
         self._path = ""
@@ -745,7 +763,7 @@ class LogicalDisk:
         return self._volume_serial_number
     
     def __str__(self) -> str:
-        return "Logical Disk: " + ", ".join(("Path: " + self.get_path(), 
+        return "Logical Disk -- " + ", ".join(("Path: " + self.get_path(), 
                                              'Label: ' + self.get_volume_name(),
                                              'File System: ' + self.get_file_system(),
                                              'Free Space: ' + human_readable_units(self.get_free_space())
@@ -791,6 +809,8 @@ class WindowsLogicalDisk(LogicalDisk):
         """Set the unique device ID and name. On windows this is pretty much the same as path."""
         try:
             self._device_id = logical_disk.DeviceID
+            if not type(self._device_id) == str:
+                self._device_id = ""
         except AttributeError:
             self._device_id = ""
         self._name = self._device_id
@@ -814,31 +834,31 @@ class WindowsLogicalDisk(LogicalDisk):
         try:
             self._file_system = logical_disk.FileSystem
             if type(self._file_system) != str:
-                self._file_system = ""
+                self._file_system = "unknown"
         except AttributeError:
-            self._file_system = ""
+            self._file_system = "unknown"
 
     def _set_free_space(self, logical_disk: wmi._wmi_object) -> None:
         """Set the available space on the filesystem in bytes"""
         try:
             self._free_space = int(logical_disk.FreeSpace)
         except AttributeError:
-            self._free_space = -1
+            self._free_space = 0
         except ValueError:
-            self._free_space = -1
+            self._free_space = 0
         except TypeError:
-            self._free_space = -1
+            self._free_space = 0
 
     def _set_maximum_component_length(self, logical_disk: wmi._wmi_object) -> None:
         """Set the max path length in characters."""
         try:
             self._maximum_component_length = int(logical_disk.MaximumComponentLength)
         except AttributeError:
-            self._maximum_component_length = -1
+            self._maximum_component_length = 0
         except ValueError:
-            self._maximum_component_length = -1
+            self._maximum_component_length = 0
         except TypeError:
-            self._maximum_component_length = -1
+            self._maximum_component_length = 0
 
     def _set_size(self, logical_disk: wmi._wmi_object) -> None:
         """Set the size in bytes."""
@@ -864,6 +884,8 @@ class WindowsLogicalDisk(LogicalDisk):
         """Set the volume serial number."""
         try:
             self._volume_serial_number = logical_disk.VolumeSerialNumber
+            if type(self._volume_serial_number) != str:
+                self._volume_serial_number = ""
         except AttributeError:
             self._volume_serial_number = ""
 
