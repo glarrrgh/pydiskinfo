@@ -1,16 +1,16 @@
 """A module for getting information about block devices in a system.
 
-The diskinfo module is not a replacement for modules for gaining 
-file or filesystem information. It is mostly a supplement, for those 
-rare situations when you need to know more about the physical devices rather 
-than the filesystems and files on them. I made the module because I needed 
-path information to be able to read byte for byte off of hard drives. If other 
-uses arise, I may be compelled to extend the module.
+The pydiskinfo module is not a replacement for modules that gain file or 
+filesystem information. It is mostly a supplement, for those rare situations 
+when you need to know more about the physical devices rather than the 
+filesystems and files on them. I made the module because I needed path 
+information to do raw read off of hard drives. If other uses arise, I may be 
+compelled to extend the module.
 
 The module depends on the wmi module, when run on a windows system. No
 extra modules need to be installed on linux systems. The linux functionality 
-depends heavily on sysfs, so it will probably not work on other unix like systems, 
-that often do not come with sysfs.
+depends heavily on udev, so it will probably not work on other unix like 
+systems. 
 
 Copyright (c) 2022 Lars Henrik Ericson
 
@@ -34,8 +34,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from ast import arg
-from diskinfo_system import System
+from pydiskinfo_system import System
 
 
 if __name__ == "__main__":
