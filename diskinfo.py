@@ -34,9 +34,12 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import sys
+from ast import arg
 from diskinfo_system import System
 
+
 if __name__ == "__main__":
+    import argparse
+    argument_parser = argparse.ArgumentParser(description="List system block devices.")
     system = System()
     print(str(system))
