@@ -59,6 +59,10 @@ class PhysicalDisk:
         """Get the disk size in bytes."""
         return self._size
 
+    def get_device_id(self) -> str:
+        """Get the disk device id, according to the system."""
+        return self._path
+
     def get_path(self) -> str:
         """Get a path usable for raw access."""
         return self._path

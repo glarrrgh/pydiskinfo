@@ -80,6 +80,22 @@ class System:
         self._logical_disks = []
         self._parse_system()
 
+    def get_physical_disks(self) -> list:
+        """Returns a list of physical disks in the system."""
+        return self._disks
+
+    def get_partitions(self) -> list:
+        """Returns a list of partitions in the system."""
+        return self._partitions
+
+    def get_logical_disks(self) -> list:
+        """Returns a list of logical disks, sometimes called volumes, 
+        filesystems, or mountpoints.
+        
+        This is more or less information about wether a partition is used in 
+        some way by the system."""
+        return self._logical_disks
+
     def get_name(self) -> str:
         """Return system name, as specified on instanciation"""
         return self._name
