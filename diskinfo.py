@@ -146,14 +146,16 @@ class System:
             created_object =  super().__new__(WindowsSystem)
         elif sys.platform == "linux":
             created_object =  super().__new__(LinuxSystem)
+        else:
+            created_object = System
         return created_object
 
     def __init__(self, name: str = "System") -> None:
         self._name = name
         self._type = "generic"
-        self._disks = set()
-        self._partitions = set()
-        self._logical_disks = set()
+        self._disks = []
+        self._partitions = []
+        self._logical_disks = []
         self._parse_system()
 
     def get_name(self) -> str:
@@ -172,7 +174,9 @@ class System:
         system = ", ".join(("System name: {}".format(self.get_name()), 
                             "System type/OS: {}".format(self.get_type())
                             ))
-        disks = ["\n".join(["  {}".format(line) for line in str(disk).split("\n")]) for disk in self._disks]
+        disks = ["\n".join(
+                    ["  {}".format(line) for line in str(disk).split("\n")]
+                ) for disk in self._disks]
         return "\n".join((system, "", *disks))
 
 
@@ -201,7 +205,7 @@ class WindowsSystem(System):
             raise DiskInfoParseError from err
         for each_disk in cursor.Win32_DiskDrive():
             disk = WindowsPhysicalDisk(each_disk, self)
-            self._disks.add(disk)
+            self._disks.append(disk)
             for each_partition in each_disk.associators('Win32_DiskDriveToDiskPartition'):
                 partition = WindowsPartition(each_partition, disk)
                 new_partition = True
@@ -212,7 +216,7 @@ class WindowsSystem(System):
                         break
                 disk.add_partition(partition)
                 if new_partition:
-                    self._partitions.add(partition)
+                    self._partitions.append(partition)
                 for each_logical_disk in each_partition.associators('Win32_LogicalDiskToPartition'):
                     logical_disk = WindowsLogicalDisk(each_logical_disk, self)
                     new_logical_disk = True
@@ -222,7 +226,7 @@ class WindowsSystem(System):
                             new_logical_disk = False
                             break
                     if new_logical_disk:
-                        self._logical_disks.add(logical_disk)
+                        self._logical_disks.append(logical_disk)
                     logical_disk.add_partition(partition)
                     partition.add_logical_disk(logical_disk)                  
         
@@ -232,9 +236,9 @@ class PhysicalDisk:
 
     def __init__(self, system: System) -> None:
         self._system = system
-        self._partitions = set()
+        self._partitions = []
         self._size = 0
-        self._drive_number = -1
+        self._disk_number = -1
         self._device_id = ""
         self._path = ""
         self._media_type = ""
@@ -254,7 +258,7 @@ class PhysicalDisk:
         return self._system
     
     def get_partitions(self) -> set:
-        """Get a set of Partition objects connected to this disk."""
+        """Get a list of Partition objects connected to this disk."""
         return self._partitions
 
     def get_size(self) -> int:
@@ -318,6 +322,7 @@ class PhysicalDisk:
         
         May make a difference on card readers and such.
         """
+        return self._media_loaded
     
     def is_removable(self) -> bool:
         """Get wether disk is removable."""
@@ -363,7 +368,7 @@ class WindowsPhysicalDisk(PhysicalDisk):
         
     def add_partition(self, partition: 'Partition') -> None:
         """add a Partition object to the disk."""
-        self._partitions.add(partition)
+        self._partitions.append(partition)
 
     def _set_size(self, wmi_physical_disk: wmi._wmi_object) -> None:
         """set size of disk in bytes."""
@@ -469,7 +474,7 @@ class Partition:
 
     def __init__(self, disk: PhysicalDisk) -> None:
         self._disk = disk
-        self._logical_disks = set()
+        self._logical_disks = []
         self._blocksize = -1
         self._bootable = False
         self._boot_partition = False
@@ -495,7 +500,7 @@ class Partition:
             if each_logical_disk.get_device_id() == logical_disk.get_device_id():
                 new_logical_disk = False
         if new_logical_disk:
-            self._logical_disks.add(logical_disk)
+            self._logical_disks.append(logical_disk)
 
     def get_logical_disks(self) -> set:
         """Get the logical disk connected to this partition."""
