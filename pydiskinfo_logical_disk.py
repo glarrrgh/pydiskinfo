@@ -1,4 +1,4 @@
-"""Diskinfo LogicalDisk class definition
+"""pydiskinfo LogicalDisk class definition
 
 Copyright (c) 2022 Lars Henrik Ericson
 

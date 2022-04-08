@@ -27,15 +27,15 @@ import sys
 
 
 from human_readable_units import UNITS, human_readable_units
-from diskinfo_logical_disk import LogicalDisk
-from diskinfo_partition import Partition
-from diskinfo_physical_disk import PhysicalDisk
+from pydiskinfo_logical_disk import LogicalDisk
+from pydiskinfo_partition import Partition
+from pydiskinfo_physical_disk import PhysicalDisk
 
 if sys.platform == 'win32':
     import wmi
-    from diskinfo_logical_disk import WindowsLogicalDisk
-    from diskinfo_partition import WindowsPartition
-    from diskinfo_physical_disk import WindowsPhysicalDisk
+    from pydiskinfo_logical_disk import WindowsLogicalDisk
+    from pydiskinfo_partition import WindowsPartition
+    from pydiskinfo_physical_disk import WindowsPhysicalDisk
 
 
 class DiskInfoParseError(Exception):

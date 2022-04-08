@@ -1,4 +1,4 @@
-"""Diskinfo Partition class definition
+"""pydiskinfo Partition class definition
 
 Copyright (c) 2022 Lars Henrik Ericson
 
@@ -54,7 +54,7 @@ class Partition:
         """Get the disk the partition is part of."""
         return self._disk
 
-    def add_logical_disk(self, logical_disk: 'LogicalDisk') -> None:
+    def add_logical_disk(self, logical_disk: object) -> None:
         """Set the logical disk connected to this partition."""
         new_logical_disk = True
         for each_logical_disk in self._logical_disks:

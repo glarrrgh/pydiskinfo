@@ -1,4 +1,4 @@
-"""Diskinfo PhysicalDisk class definition
+"""pydiskinfo PhysicalDisk class definition
 
 Copyright (c) 2022 Lars Henrik Ericson
 
