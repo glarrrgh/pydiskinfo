@@ -25,119 +25,38 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 from human_readable_units import human_readable_units
 
 
-class PhysicalDisk:
+class PhysicalDisk(dict):
     """Contains information about physical drives."""
 
-    def __init__(self, system: object) -> None:
-        self._system = system
-        self._partitions = []
-        self._size = 0
-        self._disk_number = -1
-        self._device_id = ""
-        self._path = ""
-        self._media_type = ""
-        self._serial_number = ""
-        self._model = ""
-        self._sectors = 0
-        self._heads = 0
-        self._cylinders = 0
-        self._bytes_per_sector = 0
-        self._firmware = ""
-        self._interface_type = ""
-        self._media_loaded = False
-        self._status = ""
-
-    def get_system(self) -> object:
-        """Get the system that this disk is connected to."""
-        return self._system
-    
-    def get_partitions(self) -> set:
-        """Get a list of Partition objects connected to this disk."""
-        return self._partitions
-
-    def get_size(self) -> int:
-        """Get the disk size in bytes."""
-        return self._size
-
-    def get_device_id(self) -> str:
-        """Get the disk device id, according to the system."""
-        return self._path
-
-    def get_path(self) -> str:
-        """Get a path usable for raw access."""
-        return self._path
-
-    def get_media_type(self) -> str:
-        """Get the media type of this disk."""
-        return self._media_type
-
-    def get_serial_number(self) -> str:
-        """Get disk serial number."""
-        return self._serial_number
-
-    def get_model(self) -> str:
-        """Get disk model. This often includes hints of the manufacturer."""
-        return self._model
-
-    def get_sectors(self) -> int:
-        """Get the number of sectors on disk."""
-        return self._sectors
-
-    def get_heads(self) -> int:
-        """Get the number of heads on disk."""
-        return self._heads
-
-    def get_cylinders(self) -> int:
-        """Get the number of cylinders on disk."""
-        return self._cylinders
-
-    def get_bytes_per_sector(self) -> int:
-        """Get bytes per sector. This often translates to blocksize."""
-        return self._bytes_per_sector
-
-    def get_firmware_version(self) -> str:
-        """Get disk firmware version. """
-        return self._firmware
-
-    def get_disk_number(self) -> int:
-        """Get disk number, as reported by the os."""
-        return self._disk_number
-
-    def get_interface_type(self) -> str:
-        """Get interface type. 
-        
-        Value may be missleading, as some systems may reuse legacy interface 
-        names for newer interface types. 
-        """
-        return self._interface_type
-
-    def get_status(self) -> str:
-        """Get the status of the disk. """
-        return self._status
-
-    def is_media_loaded(self) -> bool:
-        """Is some media inserted in drive. 
-        
-        May make a difference on card readers and such.
-        """
-        return self._media_loaded
-    
-    def is_removable(self) -> bool:
-        """Get wether disk is removable."""
-        if self._media_type == "Removable Media":
-            return True
-        return False
+    def __init__(self, system: 'System') -> None:
+        self['System'] = system
+        self['Partitions'] = []
+        self['Size'] = 0
+        self['Disk Number'] = -1
+        self['Device I.D.'] = ""
+        self['Path'] = ""
+        self['Media Type'] = ""
+        self['Serial Number'] = ""
+        self['Model'] = ""
+        self['Sectors'] = 0
+        self['Heads'] = 0
+        self['Cylinders'] = 0
+        self['Bytes per Sector'] = 0
+        self['Firmware Version'] = ""
+        self['Interface Type'] = ""
+        self['Media Loaded'] = False
+        self['Status'] = ""
 
     def __str__(self) -> str:
         """Overloading the string method"""
-        disk = 'Disk -- ' + ", ".join(("Disk number: {}".format(self.get_disk_number()), 
-                                       "Path: " + self.get_path(), 
-                                       "Media Type: " + self.get_media_type(), 
-                                       "Size: " + human_readable_units(self.get_size())
+        disk = 'Disk -- ' + ", ".join(("Disk Number: {}".format(self['Disk Number']), 
+                                       "Path: " + self['Path'], 
+                                       "Media Type: " + self['Media Type'], 
+                                       "Size: " + human_readable_units(self['Size'])
                                        ))
         partitions = ["\n".join(
                         ["  " + line for line in str(partition).split("\n")]) 
-                      for partition in self._partitions]
+                      for partition in self['Partitions']]
         return "\n".join( (disk, *partitions, "" ) )
 
 class LinuxPhysicalDisk(PhysicalDisk):
@@ -166,99 +85,99 @@ class WindowsPhysicalDisk(PhysicalDisk):
         
     def add_partition(self, partition: 'Partition') -> None:
         """add a Partition object to the disk."""
-        self._partitions.append(partition)
+        self['Partitions'].append(partition)
 
-    def _set_size(self, wmi_physical_disk: object) -> None:
+    def _set_size(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """set size of disk in bytes."""
         try:
-            self._size = int(wmi_physical_disk.Size)
+            self['Size'] = int(wmi_physical_disk.Size)
         except ValueError:
-            self._size = -1
+            self['Size'] = -1
 
-    def _set_disk_number(self, wmi_physical_disk: object) -> None:
+    def _set_disk_number(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """set system disk identification number"""
         try:
-            self._disk_number = int(wmi_physical_disk.Index)
+            self['Disk Number'] = int(wmi_physical_disk.Index)
         except ValueError:
-            self._disk_number = -1
+            self['Disk Number'] = -1
 
-    def _set_device_id_and_path(self, wmi_physical_disk: object) -> None:
+    def _set_device_id_and_path(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._path = wmi_physical_disk.DeviceID
-            self._device_id = self._path
+            self['Path'] = wmi_physical_disk.DeviceID
+            self['Device I.D.'] = self['Path']
         except AttributeError:
-            self._path = ""
-            self._device_id = ""
+            self['Path'] = ""
+            self['Device I.D.'] = ""
 
-    def _set_media_type(self, wmi_physical_disk: object) -> None:
+    def _set_media_type(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._media_type = wmi_physical_disk.MediaType
+            self['Media Type'] = wmi_physical_disk.MediaType
         except AttributeError:
-            self._media_type = ""
+            self['Media Type'] = ""
 
-    def _set_serial_number(self, wmi_physical_disk: object) -> None:
+    def _set_serial_number(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._serial_number = wmi_physical_disk.SerialNumber
+            self['Serial Number'] = wmi_physical_disk.SerialNumber
         except AttributeError:
-            self._serial_number = ""
+            self['Serial Number'] = ""
 
-    def _set_model(self, wmi_physical_disk: object) -> None:
+    def _set_model(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._model = wmi_physical_disk.Model
+            self['Model'] = wmi_physical_disk.Model
         except AttributeError:
-            self._model = ""
+            self['Model'] = ""
 
-    def _set_sectors(self, wmi_physical_disk: object) -> None:
+    def _set_sectors(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """Set total number of sectors, or -1 if not a number."""
         try:
-            self._sectors = int(wmi_physical_disk.TotalSectors)
+            self['Sectors'] = int(wmi_physical_disk.TotalSectors)
         except ValueError:
-            self._sectors = -1
+            self['Sectors'] = -1
 
-    def _set_heads(self, wmi_physical_disk: object) -> None:
+    def _set_heads(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """Set total number of heads, or -1 if not a number"""
         try:
-            self._heads = int(wmi_physical_disk.TotalHeads)
+            self['Heads'] = int(wmi_physical_disk.TotalHeads)
         except ValueError:
-            self._heads = -1
+            self['Heads'] = -1
 
-    def _set_cylinders(self, wmi_physical_disk: object) -> None:
+    def _set_cylinders(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """Set total number of cylinders, or -1 if not a number"""
         try:
-            self._cylinders = int(wmi_physical_disk.TotalCylinders)
+            self['Cylinders'] = int(wmi_physical_disk.TotalCylinders)
         except ValueError:
-            self._cylinders = -1
+            self['Cylinders'] = -1
 
-    def _set_bytes_per_sector(self, wmi_physical_disk: object) -> None:
+    def _set_bytes_per_sector(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """Set bytes per sector, or -1 if not a number"""
         try:
-            self._bytes_per_sector = int(wmi_physical_disk.BytesPerSector)
+            self['Bytes per Sector'] = int(wmi_physical_disk.BytesPerSector)
         except ValueError:
-            self._bytes_per_sector = -1
+            self['Bytes per Sector'] = -1
 
-    def _set_firmware(self, wmi_physical_disk: object) -> None:
+    def _set_firmware(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """Set firmware"""
         try:
-            self._firmware = wmi_physical_disk.FirmWare
+            self['Firmware'] = wmi_physical_disk.FirmWare
         except AttributeError:
-            self._firmware = "Unspecified"
+            self['Firmware'] = "Unspecified"
 
-    def _set_interface_type(self, wmi_physical_disk: object) -> None:
+    def _set_interface_type(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._interface_type = wmi_physical_disk.InterfaceType
+            self['Interface_type'] = wmi_physical_disk.InterfaceType
         except AttributeError:
-            self._interface_type = ""
+            self['Interface_type'] = ""
 
-    def _set_media_loaded(self, wmi_physical_disk: object) -> None:
+    def _set_media_loaded(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._media_loaded = wmi_physical_disk.MediaLoaded
+            self['Media Loaded'] = wmi_physical_disk.MediaLoaded
         except AttributeError:
-            self._media_loaded = False
+            self['Media Loaded'] = False
 
-    def _set_status(self, wmi_physical_disk: object) -> None:
+    def _set_status(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self._status = wmi_physical_disk.Status
+            self['Status'] = wmi_physical_disk.Status
         except AttributeError:
-            self._status = ""
+            self['Status'] = ""
 
 

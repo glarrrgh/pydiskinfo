@@ -25,7 +25,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 from human_readable_units import human_readable_units
 
 
-class Partition:
+class Partition(dict):
     """Contains information about partitions. This includes logical disk, 
     or 'volume' information. The same volume may span several disks, and the 
     filesystem of the partition, will in those cases be the filesystem of the 
@@ -33,116 +33,49 @@ class Partition:
     filesystem on its own, though its contents will be part of one.
     """
 
-    def __init__(self, disk: object) -> None:
-        self._disk = disk
-        self._logical_disks = []
-        self._blocksize = -1
-        self._bootable = False
-        self._boot_partition = False
-        self._description = ""
-        self._path = ""
-        self._device_id = ""
-        self._disk_number = -1
-        self._partition_number = -1
-        self._number_of_blocks = -1
-        self._primary_partition = False
-        self._size = 0
-        self._starting_offset = -1
-        self._type = ""
+    def __init__(self, physical_disk: 'PhysicalDisk') -> None:
+        self['Physical Disk'] = physical_disk
+        self['Logical Disks'] = []
+        self['Blocksize'] = -1
+        self['Bootable'] = False
+        self['Boot Partition'] = False
+        self['Description'] = ""
+        self['Path'] = ""
+        self['Device I.D.'] = ""
+        self['Disk Number'] = -1
+        self['Partition Number'] = -1
+        self['Number of Blocks'] = -1
+        self['Primary Partition'] = False
+        self['Size'] = 0
+        self['Starting Offset'] = -1
+        self['Type'] = ""
 
-    def get_disk(self) -> object:
-        """Get the disk the partition is part of."""
-        return self._disk
-
-    def add_logical_disk(self, logical_disk: object) -> None:
+    def add_logical_disk(self, logical_disk: 'LogicalDisk') -> None:
         """Set the logical disk connected to this partition."""
         new_logical_disk = True
-        for each_logical_disk in self._logical_disks:
-            if each_logical_disk.get_device_id() == logical_disk.get_device_id():
+        for each_logical_disk in self['Logical Disks']:
+            if each_logical_disk['Device I.D.'] == logical_disk['Device I.D.']:
                 new_logical_disk = False
         if new_logical_disk:
-            self._logical_disks.append(logical_disk)
-
-    def get_logical_disks(self) -> set:
-        """Get the logical disk connected to this partition."""
-        return self._logical_disks
-
-    def get_blocksize(self) -> int:
-        """Get the blocksize of the partition."""
-        return self._blocksize
-
-    def is_bootable(self) -> bool:
-        """If the partition is able to be used as a boot device."""
-        return self._bootable
-
-    def is_boot_partition(self) -> bool:
-        """If the partition is a system boot partition."""
-        return self._boot_partition
-
-    def get_description(self) -> str:
-        """A description of the system. Often includes partition table type."""
-        return self._description
-
-    def get_path(self) -> str:
-        """Path to open partition for raw read. 
-        
-        Not available on windows. Open disk and use the starting offset and 
-        size of the partition to raw read the partition.
-        """
-        return self._path
-
-    def get_device_id(self) -> str:
-        """Device id. It should be unique for the partition."""
-        return self._device_id
-
-    def get_disk_number(self) -> int:
-        """Disk number of the parent disk of the partition."""
-        return self._disk_number
-
-    def get_partition_number(self) -> int:
-        """The partition index on the disk. 
-        
-        Each disk may have a partition numbered 0.
-        """
-        return self._partition_number
-
-    def Get_number_of_blocks(self) -> int:
-        """The amount of blocks in the partition."""
-        return self._number_of_blocks
-
-    def is_primary_partition(self) -> bool:
-        """If the partition is a primary partition."""
-        return self._primary_partition
-
-    def get_size(self) -> int:
-        """Partition size in bytes."""
-        return self._size
-
-    def get_starting_offset(self) -> int:
-        """Byte offset that the partition starts at."""
-        return self._starting_offset
-
-    def get_type(self) -> str:
-        """A description of the partition type."""
-        return self._type
+            self['Logical Disks'].append(logical_disk)
 
     def __str__(self) -> str:
         """overloading the __str__ method"""
-        partition = 'Partition -- ' + ", ".join(('ID: ' + self.get_device_id(), 
-                                               'Type: ' + self.get_type(), 
-                                               'Size: ' + human_readable_units(self.get_size()), 
-                                               'Offset: '+ str(self.get_starting_offset())
+        partition = 'Partition -- ' + ", ".join(('ID: ' + self['Device I.D.'], 
+                                               'Type: ' + self['Type'], 
+                                               'Size: ' + human_readable_units(self['Size']), 
+                                               'Offset: '+ str(self['Starting Offset'])
                                                ))
-        logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self.get_logical_disks()] 
+        logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self['Logical Disks']] 
         return "\n".join((partition, *logical_disks))
 
 
 class LinuxPartition(Partition):
-    def __init__(self, disk: object) -> None:
+    def __init__(self, disk: 'PhysicalDisk') -> None:
         super().__init__(disk)
 
 class WindowsPartition(Partition):
-    def __init__(self, partition: object, disk: object) -> None:
+    def __init__(self, partition: 'wmi._wmi_object', disk: 'PhysicalDisk') -> None:
         super().__init__(disk)
         self._set_blocksize(partition)
         self._set_bootable(partition)
@@ -157,62 +90,62 @@ class WindowsPartition(Partition):
         self._set_starting_offset(partition)
         self._set_type(partition)
 
-    def _set_blocksize(self, partition: object) -> None:
+    def _set_blocksize(self, partition: 'wmi._wmi_object') -> None:
         """Set blocksize or -1 if it fails."""
         try:
-            self._blocksize = int(partition.BlockSize)
+            self['BlockSize'] = int(partition.BlockSize)
         except AttributeError:
-            self._blocksize = -1
+            self['BlockSize'] = -1
         except ValueError:
-            self._blocksize = -1
+            self['BlockSize'] = -1
 
-    def _set_bootable(self, partition: object) -> None:
+    def _set_bootable(self, partition: 'wmi._wmi_object') -> None:
         """Set bootable or false if it fails."""
         try:
-            self._bootable = partition.Bootable
+            self['Bootable'] = partition.Bootable
         except AttributeError:
-            self._bootable = False
+            self['Bootable'] = False
 
-    def _set_boot_partition(self, partition: object) -> None:
+    def _set_boot_partition(self, partition: 'wmi._wmi_object') -> None:
         """Set if system boot partition, or False if it fails."""
         try:
-            self._boot_partition = partition.BootPartition
+            self['Boot Partition'] = partition.BootPartition
         except AttributeError:
-            self._boot_partition = False
+            self['Boot Partition'] = False
 
-    def _set_description(self, partition: object) -> None:
+    def _set_description(self, partition: 'wmi._wmi_object') -> None:
         """set a description provided by the system."""
         try:
-            self._description = partition.Description
+            self['Description'] = partition.Description
         except AttributeError:
-            self._description = ""
+            self['Description'] = ""
 
-    def _set_device_id(self, partition: object) -> None:
+    def _set_device_id(self, partition: 'wmi._wmi_object') -> None:
         """set the device id provided by the system."""
         try:
-            self._device_id = partition.DeviceID
+            self['Device I.D.'] = partition.DeviceID
         except AttributeError:
-            self._device_id = ""
+            self['Device I.D.'] = ""
 
-    def _set_disk_number(self, partition: object) -> None:
+    def _set_disk_number(self, partition: 'wmi._wmi_object') -> None:
         """Set the disk index number as the system sees it."""
         try:
-            self._disk_number = int(partition.DiskIndex)
+            self['Disk Number'] = int(partition.DiskIndex)
         except AttributeError:
-            self._disk_number = -1
+            self['Disk Number'] = -1
         except ValueError:
-            self._disk_number = -1
+            self['Disk Number'] = -1
 
-    def _set_partition_number(self, partition: object) -> None:
+    def _set_partition_number(self, partition: 'wmi._wmi_object') -> None:
         """Set the partition index on the disk, according to the system."""
         try:
-            self._partition_number = int(partition.Index)
+            self['Partition Number'] = int(partition.Index)
         except AttributeError:
-            self._partition_number = -1
+            self['Partition Number'] = -1
         except ValueError:
-            self._partition_number = -1
+            self['Partition Number'] = -1
 
-    def _set_number_of_blocks(self, partition: object) -> None:
+    def _set_number_of_blocks(self, partition: 'wmi._wmi_object') -> None:
         """Set number of blocks."""
         try:
             self._number_of_blocks = int(partition.NumberOfBlocks)
@@ -221,36 +154,36 @@ class WindowsPartition(Partition):
         except ValueError:
             self._number_of_blocks = -1
 
-    def _set_primary_partition(self, partition: object) -> None:
+    def _set_primary_partition(self, partition: 'wmi._wmi_object') -> None:
         """Set if the partition is a primary partition"""
         try:
-            self._primary_partition = int(partition.PrimaryPartition)
+            self['Primary Partition'] = int(partition.PrimaryPartition)
         except AttributeError:
-            self._primary_partition = False
+            self['Primary Partition'] = False
 
-    def _set_size(self, partition: object) -> None:
+    def _set_size(self, partition: 'wmi._wmi_object') -> None:
         """Set partition size in bytes."""
         try:
-            self._size = int(partition.Size)
+            self['Size'] = int(partition.Size)
         except AttributeError:
-            self._size = 0
+            self['Size'] = 0
         except ValueError:
-            self._size = 0
+            self['Size'] = 0
 
-    def _set_starting_offset(self, partition: object) -> None:
+    def _set_starting_offset(self, partition: 'wmi._wmi_object') -> None:
         """Set partition starting offset in bytes."""
         try:
-            self._starting_offset = int(partition.StartingOffset)
+            self['Starting Offset'] = int(partition.StartingOffset)
         except AttributeError:
-            self._starting_offset = -1
+            self['Starting Offset'] = -1
         except ValueError:
-            self._starting_offset = -1
+            self['Starting Offset'] = -1
 
-    def _set_type(self, partition: object) -> None:
+    def _set_type(self, partition: 'wmi._wmi_object') -> None:
         """Set partition type."""
         try:
-            self._type = partition.Type
+            self['Type'] = partition.Type
         except AttributeError:
-            self._type = ""
+            self['Type'] = ""
 
 

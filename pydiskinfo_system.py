@@ -53,7 +53,7 @@ class DiskInfoParseError(Exception):
         self.status = status
 
 
-class System:
+class System(dict):
     """Reads and contains information about the block devices on the system.
     
     This is probably the only class you need to instanciate. It will contain 
@@ -73,55 +73,30 @@ class System:
         return created_object
 
     def __init__(self, name: str = "System") -> None:
-        self._name = name
-        self._type = "generic"
-        self._disks = []
-        self._partitions = []
-        self._logical_disks = []
+        self['Name'] = name
+        self['Type'] = "generic"
+        self['Physical Disks'] = []
+        self['Partitions'] = []
+        self['Logical Disks'] = []
         self._parse_system()
-
-    def get_physical_disks(self) -> list:
-        """Returns a list of physical disks in the system."""
-        return self._disks
-
-    def get_partitions(self) -> list:
-        """Returns a list of partitions in the system."""
-        return self._partitions
-
-    def get_logical_disks(self) -> list:
-        """Returns a list of logical disks, sometimes called volumes, 
-        filesystems, or mountpoints.
-        
-        This is more or less information about wether a partition is used in 
-        some way by the system."""
-        return self._logical_disks
-
-    def get_name(self) -> str:
-        """Return system name, as specified on instanciation"""
-        return self._name
-
-    def get_type(self) -> str:
-        """Return system/OS type. This value depends on the subclass used."""
-        return self._type
 
     def _parse_system(self) -> None:
         """To be overloaded by subclasses"""
         pass
 
     def __str__(self) -> str:
-        system = ", ".join(("System name: {}".format(self.get_name()), 
-                            "System type/OS: {}".format(self.get_type())
+        system = ", ".join(("System name: {}".format(self['Name']), 
+                            "System type/OS: {}".format(self['Type'])
                             ))
         disks = ["\n".join(
                     ["  {}".format(line) for line in str(disk).split("\n")]
-                ) for disk in self._disks]
+                ) for disk in self['Physical Disks']]
         return "\n".join((system, "", *disks))
 
 
 class LinuxSystem(System):
     def _parse_system(self) -> None:
         pass
-
 
 class WindowsSystem(System):
     """This is an inherited version of the System class.
@@ -131,7 +106,7 @@ class WindowsSystem(System):
 
     def __init__(self, name: str = "Windows System") -> None:
         super().__init__(name)
-        self._type = "Microsoft Windows"  
+        self['Type'] = "Microsoft Windows"  
 
     def _parse_system(self) -> None:
         """Parse the system"""
@@ -143,28 +118,28 @@ class WindowsSystem(System):
             raise DiskInfoParseError from err
         for each_disk in cursor.Win32_DiskDrive():
             disk = WindowsPhysicalDisk(each_disk, self)
-            self._disks.append(disk)
+            self['Physical Disks'].append(disk)
             for each_partition in each_disk.associators('Win32_DiskDriveToDiskPartition'):
                 partition = WindowsPartition(each_partition, disk)
                 new_partition = True
-                for each_existing_partition in self._partitions:
-                    if each_existing_partition.get_device_id() == partition.get_device_id():
+                for each_existing_partition in self['Partitions']:
+                    if each_existing_partition['Device I.D.'] == partition['Device I.D.']:
                         partition = each_existing_partition
                         new_partition = False
                         break
                 disk.add_partition(partition)
                 if new_partition:
-                    self._partitions.append(partition)
+                    self['Partitions'].append(partition)
                 for each_logical_disk in each_partition.associators('Win32_LogicalDiskToPartition'):
                     logical_disk = WindowsLogicalDisk(each_logical_disk, self)
                     new_logical_disk = True
-                    for each_existing_logical_disk in self._logical_disks:
-                        if each_existing_logical_disk.get_device_id() == logical_disk.get_device_id():
+                    for each_existing_logical_disk in self['Logical Disks']:
+                        if each_existing_logical_disk['Device I.D.'] == logical_disk['Device I.D.']:
                             logical_disk = each_existing_logical_disk
                             new_logical_disk = False
                             break
                     if new_logical_disk:
-                        self._logical_disks.append(logical_disk)
+                        self['Logical Disks'].append(logical_disk)
                     logical_disk.add_partition(partition)
                     partition.add_logical_disk(logical_disk)                  
         
