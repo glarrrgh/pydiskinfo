@@ -229,7 +229,7 @@ Default: -lp PpVtfF
     V   Show volume name. For instance the volume label.
     n   Show volume serial number. 
 """
-, formatter_class=argparse.RawDescriptionHelpFormatter
+, formatter_class=argparse.RawTextHelpFormatter
 )
     argument_parser.add_argument(   
         '-dp', 
@@ -257,12 +257,13 @@ Default: -lp PpVtfF
     argument_parser.add_argument(
         '-l',
         action='store_true',
-        help='''Start listing from a logical disk viewpoint. Remember to add P 
-to the -lp option to list partition under each logical disk. If included in the 
-parameter list (-lp, and -pp), the partitions will be listed as part of a 
-logical disk, and the physical disk the partitions are part of. So pretty much 
-the reverse of normal behaviour.
-    
+        help=
+'''Start listing from a logical disk viewpoint. Remember to add P to 
+the -lp option to list partition under each logical disk. If 
+included in the parameter list (-lp, and -pp), the partitions 
+will be listed as part of a logical disk, and the physical disk 
+the partitions are part of. So pretty much the reverse of 
+normal behaviour.    
 '''
     )
     argument_parser.add_argument(
