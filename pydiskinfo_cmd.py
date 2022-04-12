@@ -28,25 +28,121 @@ from pydiskinfo import System, PhysicalDisk, Partition, LogicalDisk
 from human_readable_units import human_readable_units
 
 def str_system(system: System) -> str:
+    """Returns a string representation of the system consisting of the 
+    properties chosen on the command line."""
     return 'System: ' + ', '.join(( 
-        'Name: {}'.format(system['Name']), 
-        'Type: {}'.format(system['Type'])
+        f'Name: {system["Name"]}', 
+        f'Type: {system["Type"]}'
     ))
 
 def str_physical_disk(physical_disk: PhysicalDisk, properties: str) -> str:
+    """Returns a string representation of the physical disk consisting of the 
+    properties chosen on the command line."""
     strings = []
     sanitized_properties = [property for property in properties if property in set(properties)]
     for each_property in sanitized_properties:
         if each_property == 's':
-            strings.append(human_readable_units(physical_disk['Size']))
+            strings.append(f'Size: {human_readable_units(physical_disk["Size"])}')
         elif each_property == 'S':
-            strings.append(physical_disk['Size'])
-    return 'Physical Disk:' + ', '.join(strings)
+            strings.append(f'Size: {physical_disk["Size"]}')
+        elif each_property == 'i':
+            strings.append(f'Disk Number: {physical_disk["Disk Number"]}')
+        elif each_property == 'd':
+            strings.append(f'Device I.D.: {physical_disk["Device I.D."]}')
+        elif each_property == 'p':
+            strings.append(f'Path: {physical_disk["Path"]}')
+        elif each_property == 't':
+            strings.append(f'Media Type: {physical_disk["Media Type"]}')
+        elif each_property == 'n':
+            strings.append(f'Serical Number: {physical_disk["Serial Number"]}')
+        elif each_property == 'm':
+            strings.append(f'Model: {physical_disk["Model"]}')
+        elif each_property == 'c':
+            strings.append(f'Sectors: {physical_disk["Sectors"]}')
+        elif each_property == 'b':
+            strings.append(f'Bytes per Sector: {physical_disk["Bytes per Sector"]}')
+        elif each_property == 'h':
+            strings.append(f'Heads: {physical_disk["Heads"]}')
+        elif each_property == 'C':
+            strings.append(f'Cylinders: {physical_disk["Cylinders"]}')
+        elif each_property == 'f':
+            strings.append(f'Firmware: {physical_disk["Firmware Version"]}')
+        elif each_property == 'I':
+            strings.append(f'Interface Type: {physical_disk["Interface Type"]}')
+        elif each_property == 'M':
+            strings.append(f'Media is {"" if physical_disk["Media Loaded"] else "not "}Loaded')
+        elif each_property == 'a':
+            strings.append(f'Status: {physical_disk["Status"]}')
+    return 'Physical Disk: ' + ', '.join(strings)
 
-def str_partition(partition: Partition) -> str:
-    return 'Partition: ' + ', '.join((
-        '',
-    ))
+def str_partition(partition: Partition, properties: str) -> str:
+    """Returns a string representation of the partition consisting of the 
+    properties chosen on the command line."""
+    strings = []
+    sanitized_properties = [property for property in properties if property in set(properties)]
+    for each_property in sanitized_properties:
+        if each_property == 'b':
+            strings.append(f'Blocksize: {partition["Blocksize"]}')
+        elif each_property == 'B':
+            strings.append(f'is {"" if partition["Bootable"] else "not "}bootable')
+        elif each_property == 'o':
+            strings.append(f'is {"" if partition["Boot Partition"] else "not "}the active boot partition')
+        elif each_property == 'x':
+            strings.append(f'Description: {partition["Description"]}')
+        elif each_property == 'p':
+            strings.append(f'Path: {partition["Path"]}')
+        elif each_property == 'd':
+            strings.append(f'Device I.D.: {partition["Device I.D."]}')
+        elif each_property == 'i':
+            strings.append(f'Disk Number: {partition["Disk Number"]}')
+        elif each_property == 'N':
+            strings.append(f'Partition Number: {partition["Partition Number"]}')
+        elif each_property == 'c':
+            strings.append(f'Blocks: {partition["Number of Blocks"]}')
+        elif each_property == 'r':
+            strings.append(f'is {"" if partition["Primary Partition"] else "not "}a primary partition')
+        elif each_property == 's':
+            strings.append(f'Size: {human_readable_units(partition["Size"])}')
+        elif each_property == 'S':
+            strings.append(f'Size: {partition["Size"]}')
+        elif each_property == 'e':
+            strings.append(f'Offset: {partition["Starting Offset"]}')
+        elif each_property == 't':
+            strings.append(f'Type: {partition["Type"]}')
+    return 'Partition: ' + ', '.join(strings)
+
+def str_logical_disk(logical_disk: LogicalDisk, properties: str) -> str:
+    """Returns a string representation of the logical disk consisting of the 
+    properties chosen on the command line."""
+    strings = []
+    sanitized_properties = [property for property in properties if property in set(properties)]
+    for each_property in sanitized_properties:
+        if each_property == 'x':
+            strings.append(f'Description: {logical_disk["Description"]}')
+        elif each_property == 'd':
+            strings.append(f'Device I.D.: {logical_disk["Device I.D."]}')
+        elif each_property == 't':
+            strings.append(f'Type: {logical_disk["Drive Type"]}')
+        elif each_property == 'f':
+            strings.append(f'File System: {logical_disk["File System"]}')
+        elif each_property == 'F':
+            strings.append(f'Free Space: {human_readable_units(logical_disk["Free Space"])}')
+        elif each_property == 'U':
+            strings.append(f'Max Component Length: {logical_disk["Maximum Component Length"]}')
+        elif each_property == 'v':
+            strings.append(f'Logical Disk Name: {logical_disk["Name"]}')
+        elif each_property == 'p':
+            strings.append(f'Path: {logical_disk["Path"]}')
+        elif each_property == 's':
+            strings.append(f'Size: {human_readable_units(logical_disk["Size"])}')
+        elif each_property == 'S':
+            strings.append(f'Size: {logical_disk["Size"]}')
+        elif each_property == 'V':
+            strings.append(f'Volume Name: {logical_disk["Volume Name"]}')
+        elif each_property == 'n':
+            strings.append(f'Volume Serial Number: {logical_disk["Volume Serial Number"]}')
+    return 'Logical Disk: ' + ', '.join(strings)
+
 
 def main():
     argument_parser = argparse.ArgumentParser(
@@ -87,15 +183,16 @@ Default: -dp Pipts
 Partition properties:
 Combine the corrseponding characters in a string after the -pp option. Order 
 will be kept according to the string, except for the logical disk list.
-Default: -pp Ldtse
+Default: -pp LDdtse
 
     L   List logical disks under each partition. The logical disk properties 
         will be listed according to the -lp option.
-    D   Show the physical disk the partition is part of. 
+    D   Show the physical disk the partition is part of. Ignored unless -l is 
+        specified.
     b   Show blocksize.
     B   Show if partition is bootable.
     o   Show if partition is the active boot partition.
-    D   Show a description created by the system.
+    x   Show a description created by the system.
     p   Show a path usable for raw access. Not usable in windows. Use the 
         physical disk and read <size> bytes from <starting offset> in stead.
     d   Show the system device I.D.
@@ -112,13 +209,13 @@ Default: -pp Ldtse
 Logical disk properties:
 Combine the corresponding characters in a string after the -lp option. Order 
 will be kept according to the string, except for the partition list.
-Default: -lp pVtfF
+Default: -lp PpVtfF
 
     P   List partitions that make up each logical disk. Ignored unless -l is 
         specified. 
     x   Show a description created by the system.
     d   Show the system device I.D.
-    t   Show some type information ablut the logical disk.
+    t   Show some type information about the logical disk.
     f   Show filesystem in text.
     F   Show free space on the partition, if available. If it is 0, this 
         information was probably not available.
@@ -143,13 +240,13 @@ Default: -lp pVtfF
     argument_parser.add_argument(
         '-pp',
         type=str,
-        default='Ldtse',
+        default='LDdtse',
         help="Partition disk properties to include in output"
     )
     argument_parser.add_argument(
         '-lp',
         type=str,
-        default='pVtfF',
+        default='PpVtfF',
         help='Logical disk properties to include in output'
     )
     argument_parser.add_argument(
@@ -173,9 +270,25 @@ the reverse of normal behaviour.
         type=str,
         help='Add a system name, if you need to differentiate between outputs.'
     )
-    args = argument_parser.parse_args()
+    args = vars(argument_parser.parse_args())
     system = System()
-    print(str(system))
-
+    print(str_system(system))
+    if args['l']:
+        for each_logical_disk in system['Logical Disks']:
+            print(f'  {str_logical_disk(each_logical_disk, args["lp"])}')
+            if 'P' in args['lp']:
+                for each_partition in each_logical_disk['Partitions']:
+                    print(f'    {str_partition(each_partition, args["pp"])}')
+                    if 'D' in args['pp']:
+                        print(f'      {str_physical_disk(each_partition["Physical Disk"], args["dp"])}')
+    else:
+        for each_physical_disk in system['Physical Disks']:
+            print(f'  {str_physical_disk(each_physical_disk, args["dp"])}')
+            if 'P' in args['dp']:
+                for each_partition in each_physical_disk["Partitions"]:
+                    print(f'    {str_partition(each_partition, args["pp"])}')
+                    if 'L' in args['pp']:
+                        for each_logical_disk in each_partition["Logical Disks"]:
+                            print(f'      {str_logical_disk(each_logical_disk, args["lp"])}')
 if __name__ == '__main__':
     main()
