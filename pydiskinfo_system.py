@@ -22,9 +22,18 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from human_readable_units import human_readable_units
 import sys
-
+import os
+import re
+import socket
+try:
+    import platform
+except ModuleNotFoundError:
+    platform = None
+try:
+    import distro
+except ModuleNotFoundError:
+    distro = None
 
 from human_readable_units import UNITS, human_readable_units
 from pydiskinfo_logical_disk import LogicalDisk
@@ -33,9 +42,9 @@ from pydiskinfo_physical_disk import PhysicalDisk
 
 if sys.platform == 'win32':
     import wmi
-    from pydiskinfo_logical_disk import WindowsLogicalDisk
-    from pydiskinfo_partition import WindowsPartition
-    from pydiskinfo_physical_disk import WindowsPhysicalDisk
+    from pydiskinfo_logical_disk import WindowsLogicalDisk, LinuxLogicalDisk
+    from pydiskinfo_partition import WindowsPartition, LinuxPartition
+    from pydiskinfo_physical_disk import WindowsPhysicalDisk, LinuxPhysicalDisk
 
 
 class DiskInfoParseError(Exception):
@@ -47,22 +56,21 @@ class DiskInfoParseError(Exception):
     this information. But if this is raised, it is usually because of access 
     rights."""
 
-    def __init__(self, message, status):
-        super().__init__(message, status)
-        self.message = "Failed to parse the system information"
-        self.status = status
-
+    def __init__(self, message):
+        super().__init__(message)
+        
 
 class System(dict):
-    """Reads and contains information about the block devices on the system.
+    """'abstractish' class describing a system.
     
-    This is probably the only class you need to instanciate. It will contain 
-    information about all diskovered block devices on the system. You can 
-    access information based on physical drives, partitions on those drives, 
-    and volumes(windows) or mount points(linux). """
+    When you create a System object, a subclass is chosen depending on the 
+    operating system of the host. So no pure System object will ever be created
+    unless the object is unable to recognize the operating system. In that case 
+    the object will be empty, excpet for some information about the operating 
+    system itself. """
 
-    def __new__(cls, name: str = "System"):
-        """If on windows, create a WIndowsSystem object instead."""
+    def __new__(cls, name: str = None):
+        """If on windows, create a WindowsSystem object instead."""
         created_object = None
         if sys.platform == "win32":
             created_object =  super().__new__(WindowsSystem)
@@ -72,22 +80,36 @@ class System(dict):
             created_object = System
         return created_object
 
-    def __init__(self, name: str = "System") -> None:
-        self['Name'] = name
-        self['Type'] = "generic"
+    def __init__(self, name: str = None) -> None:
+        self._set_name(name)
+        self._set_type()
+        self['Version'] = 'unknown'
         self['Physical Disks'] = []
         self['Partitions'] = []
         self['Logical Disks'] = []
         self._parse_system()
 
+    def _set_type(self) -> None:
+        if platform:
+            self['Type'] = platform.system()
+        else:
+            self['Type'] = sys.platform
+
+    def _set_name(self, name) -> None:
+        if name:
+            self['Name'] = name
+        else:
+            self['Name'] = socket.gethostname()
+        
     def _parse_system(self) -> None:
-        """To be overloaded by subclasses"""
+        """If the system is of unknown type, nothing is parsed."""
         pass
 
     def __str__(self) -> str:
-        system = ", ".join(("System name: {}".format(self['Name']), 
-                            "System type/OS: {}".format(self['Type'])
-                            ))
+        system = 'System: ' + ", ".join((f'Name: {self["Name"]}', 
+                                        f'Type/OS: {self["Type"]}',
+                                        f'Version: {self["Version"]}'
+                                        ))
         disks = ["\n".join(
                     ["  {}".format(line) for line in str(disk).split("\n")]
                 ) for disk in self['Physical Disks']]
@@ -95,18 +117,85 @@ class System(dict):
 
 
 class LinuxSystem(System):
+    """This is the linux version of the System class.
+    
+    This class will take care of the special cases for when the module is 
+    running on linux systems. The availability of certain files and tools 
+    differ between linux distros and versions. Some info may be available
+    as a regular user under some circumstances. But to get the module to 
+    find all variables, you will probably have to run in with raised 
+    privileges.
+    
+    """
+        
+    def __init__(self, name: str = None) -> None:
+        super().__init__(name)
+        self._set_version()
+        
+
+    def _set_version(self):
+        """The distribution version of the system. 
+        
+        There is no 'one' way to get version information about a linux distro. 
+        Kernel version would be easier, but is not really of any interest in the 
+        scope of the pydiskinfo module. So we do as best we can, and default to 
+        kernel version if all else fails."""
+        if distro:
+            self['Version'] = f'{distro.name()} {distro.version()}'
+        elif platform:
+            try:
+                self['Version'] = platform.linux_distribution()
+            except AttributeError:
+                try:
+                    self['Version'] = platform.dist()
+                except AttributeError:
+                    self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
+        else:
+            self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
+
     def _parse_system(self) -> None:
-        pass
+        block_devices = []
+        try:
+            with open('/proc/partitions', 'r') as proc_partitions:
+                for each_line in proc_partitions:
+                    match = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*')
+                    if match:
+                        block_devices.append(match.group(1, 2, 3, 4))
+        except FileNotFoundError:
+            raise DiskInfoParseError('Missing /proc/partitions. Giving up parsing.')
+        for each_device in block_devices:
+            if each_device[1] == '0':
+                self['Physical Disks'].append(
+                        LinuxPhysicalDisk(
+                            self, 
+                            int(each_device[0]),
+                            int(each_device[1]),
+                            int(each_device[2]),
+                            each_device[3]
+                        )
+                    )
+        for each_device in block_devices:
+            if int(each_device[1]) > 0:
+                disk = None
+                for each_disk in self['Physical Disks']:
+                    if str(each_disk['Major Number']) == each_device[0]:
+                        disk = each_disk
+                        break
+                partition = LinuxPartition(disk)
+
 
 class WindowsSystem(System):
-    """This is an inherited version of the System class.
+    """This is the win32 version of the System class.
     
     This class will take care of the special cases when the module is runnning 
     on windows."""
 
-    def __init__(self, name: str = "Windows System") -> None:
+    def __init__(self, name: str = None) -> None:
         super().__init__(name)
-        self['Type'] = "Microsoft Windows"  
+        self._set_version()
+
+    def _set_version(self):
+        self['Version'] = f'{platform.win32_edition()} {platform.win32_ver()[1]}'
 
     def _parse_system(self) -> None:
         """Parse the system"""

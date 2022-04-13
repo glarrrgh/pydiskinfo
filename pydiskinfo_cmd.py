@@ -32,7 +32,8 @@ def str_system(system: System) -> str:
     properties chosen on the command line."""
     return 'System: ' + ', '.join(( 
         f'Name: {system["Name"]}', 
-        f'Type: {system["Type"]}'
+        f'Type: {system["Type"]}',
+        f'Version: {system["Version"]}'
     ))
 
 def str_physical_disk(physical_disk: PhysicalDisk, properties: str) -> str:

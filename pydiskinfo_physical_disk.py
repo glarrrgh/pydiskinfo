@@ -60,8 +60,16 @@ class PhysicalDisk(dict):
         return "\n".join( (disk, *partitions, "" ) )
 
 class LinuxPhysicalDisk(PhysicalDisk):
-    def __init__(self, system: object) -> None:
+    def __init__(self, 
+                system: 'System', 
+                major_number: int, 
+                minor_number: int,
+                size_in_sectors: int,
+                device_name: str
+                ) -> None:
         super().__init__(system)
+
+        
 
 
 class WindowsPhysicalDisk(PhysicalDisk):
