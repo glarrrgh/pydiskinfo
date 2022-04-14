@@ -190,7 +190,7 @@ class LinuxSystem(System):
                                            int(each_device[2]),
                                            each_device[3]
                                            )
-                disk._add_partition(partition)
+                disk.add_partition(partition)
                 self['Partitions'].append(partition)
         logical_disks = []
         try:
