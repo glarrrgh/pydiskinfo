@@ -47,6 +47,10 @@ class PhysicalDisk(dict):
         self['Media Loaded'] = False
         self['Status'] = ""
 
+    def add_partition(self, partition: 'Partition') -> None:
+        """add a Partition object to the disk."""
+        self['Partitions'].append(partition)
+
     def __str__(self) -> str:
         """Overloading the string method"""
         disk = 'Disk -- ' + ", ".join(("Disk Number: {}".format(self['Disk Number']), 
@@ -79,10 +83,6 @@ class LinuxPhysicalDisk(PhysicalDisk):
         self['Bytes per Sector'] = sector_size
         self['Size'] = sectors * sector_size
 
-    def _add_partition(self, partition: 'Partition') -> None:
-        """Adds a partition to the pysical disk."""
-        self['Partitions'].append(partition)
-
     def _set_name_and_path(self, name):
         self['Name'] = name
         self['Path'] = f'/dev/{name}'
@@ -108,10 +108,6 @@ class WindowsPhysicalDisk(PhysicalDisk):
         self._set_media_loaded(wmi_physical_disk)
         self._set_status(wmi_physical_disk)
         
-    def add_partition(self, partition: 'Partition') -> None:
-        """add a Partition object to the disk."""
-        self['Partitions'].append(partition)
-
     def _set_size(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         """set size of disk in bytes."""
         try:
