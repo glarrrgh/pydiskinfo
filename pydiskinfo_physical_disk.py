@@ -68,7 +68,15 @@ class LinuxPhysicalDisk(PhysicalDisk):
                 device_name: str
                 ) -> None:
         super().__init__(system)
+        self['Major Number'] = major_number
+        self['Minor Number'] = minor_number
+        self['Name'] = device_name
+        self._set_size_and_sectors(size_in_sectors)
 
+    def _set_size_and_sectors(self, sectors: int, sector_size: int = 512) -> None:
+        self['Sectors'] = sectors
+        self['Bytes per Sector'] = sector_size
+        self['Size'] = sectors * sector_size
         
 
 
