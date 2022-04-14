@@ -227,7 +227,7 @@ class LinuxSystem(System):
                     dummy_partition = DummyPartition(each_disk, checked_logical_disk)
                     checked_logical_disk.add_partition(dummy_partition)
         
-    def _add_logicaldisk(self, logical_disk: 'LogicalDisk') -> 'LogicalDisk':
+    def _add_logical_disk(self, logical_disk: 'LogicalDisk') -> 'LogicalDisk':
         return_logical_disk = None
         for each_logical_disk in self['Logical Disks']:
             if each_logical_disk['Name'] == logical_disk['Name']:
