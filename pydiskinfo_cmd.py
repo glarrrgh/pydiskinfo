@@ -280,9 +280,13 @@ normal behaviour.
             print(f'  {str_logical_disk(each_logical_disk, args["lp"])}')
             if 'P' in args['lp']:
                 for each_partition in each_logical_disk['Partitions']:
-                    print(f'    {str_partition(each_partition, args["pp"])}')
+                    if each_partition.isdummy:
+                        print(f'    {str_partition(each_partition, args["pp"])}')
+                        indentation = '    '
+                    else:
+                        indentations = '      '
                     if 'D' in args['pp']:
-                        print(f'      {str_physical_disk(each_partition["Physical Disk"], args["dp"])}')
+                        print(f'{indentation}{str_physical_disk(each_partition["Physical Disk"], args["dp"])}')
     else:
         for each_physical_disk in system['Physical Disks']:
             print(f'  {str_physical_disk(each_physical_disk, args["dp"])}')

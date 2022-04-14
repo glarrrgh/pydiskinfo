@@ -51,7 +51,7 @@ class Partition(dict):
         self['Size'] = 0
         self['Starting Offset'] = -1
         self['Type'] = ""
-        self.dummy = False
+        self.isdummy = False
 
     def add_logical_disk(self, logical_disk: 'LogicalDisk') -> None:
         """Set the logical disk connected to this partition."""
@@ -75,7 +75,7 @@ class Partition(dict):
 class DummyPartition(Partition):
     def __init__(self, disk: 'PhysicalDisk', logical_disk: 'LogicalDisk'):
         super().__init__(disk)
-        self.dummy = True
+        self.isdummy = True
         self.add_logical_disk(logical_disk)
 
     def __str__(self) -> str:
