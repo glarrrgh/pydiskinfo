@@ -42,10 +42,13 @@ from pydiskinfo_physical_disk import PhysicalDisk
 
 if sys.platform == 'win32':
     import wmi
-    from pydiskinfo_logical_disk import WindowsLogicalDisk, LinuxLogicalDisk
-    from pydiskinfo_partition import WindowsPartition, LinuxPartition
-    from pydiskinfo_physical_disk import WindowsPhysicalDisk, LinuxPhysicalDisk
-
+    from pydiskinfo_logical_disk import WindowsLogicalDisk
+    from pydiskinfo_partition import WindowsPartition
+    from pydiskinfo_physical_disk import WindowsPhysicalDisk
+elif sys.platform == 'linux':
+    from pydiskinfo_logical_disk import LinuxLogicalDisk
+    from pydiskinfo_partition import LinuxPartition
+    from pydiskinfo_physical_disk import LinuxPhysicalDisk
 
 class DiskInfoParseError(Exception):
     """General exception raised during system parsing. 
