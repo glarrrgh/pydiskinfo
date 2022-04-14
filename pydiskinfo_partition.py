@@ -71,7 +71,13 @@ class Partition(dict):
 
 
 class LinuxPartition(Partition):
-    def __init__(self, disk: 'PhysicalDisk') -> None:
+    def __init__(self, 
+                disk: 'PhysicalDisk', 
+                major_number: int, 
+                minor_number: int,
+                size_in_sectors: int,
+                device_name: str
+                ) -> None:
         super().__init__(disk)
 
 class WindowsPartition(Partition):

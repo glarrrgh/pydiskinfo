@@ -74,9 +74,14 @@ class LinuxPhysicalDisk(PhysicalDisk):
         self._set_size_and_sectors(size_in_sectors)
 
     def _set_size_and_sectors(self, sectors: int, sector_size: int = 512) -> None:
+        """Sets number of sectors, sectors size, and size in bytes."""
         self['Sectors'] = sectors
         self['Bytes per Sector'] = sector_size
         self['Size'] = sectors * sector_size
+
+    def _add_partition(self, partition: 'Partition') -> None:
+        """Adds a partition to the pysical disk."""
+        self['Partitions'].append(partition)
         
 
 
