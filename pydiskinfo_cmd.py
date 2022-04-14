@@ -297,9 +297,8 @@ normal behaviour.
                         indentation = '      '
                     else:
                         indentation = '    '
-                    print(f'{indentation}{str_partition(each_partition, args["pp"])}')
                     if 'L' in args['pp']:
                         for each_logical_disk in each_partition["Logical Disks"]:
-                            print(f'      {str_logical_disk(each_logical_disk, args["lp"])}')
+                            print(f'{indentation}{str_logical_disk(each_logical_disk, args["lp"])}')
 if __name__ == '__main__':
     main()
