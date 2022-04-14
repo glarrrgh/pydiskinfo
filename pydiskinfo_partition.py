@@ -93,6 +93,7 @@ class LinuxPartition(Partition):
         super().__init__(disk)
         self['Major Number'] = major_number
         self['Minor Number'] = minor_number
+        self._set_device_id_and_path(device_name)
         self._set_blocks_and_size(size_in_sectors)
         
     def _set_blocks_and_size(self, sectors: int, sector_size: int = 512) -> None:
