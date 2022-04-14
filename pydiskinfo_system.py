@@ -216,16 +216,28 @@ class LinuxSystem(System):
                                             int(each_logical_disk[2]),
                                             int(each_logical_disk[3])
                                             )
-            self['Logical Disks'].append(logical_disk)
             for each_partition in self['Partitions']:
                 if each_partition['Path'] == each_logical_disk[0]:
-                    each_partition.add_logical_disk(logical_disk)
-                    logical_disk.add_partition(each_partition)
+                    checked_logical_disk = self._add_logical_disk(logical_disk)
+                    each_partition.add_logical_disk(checked_logical_disk)
+                    checked_logical_disk.add_partition(each_partition)
             for each_disk in self['Physical Disks']:
                 if each_disk['Path'] == each_logical_disk[0]:
-                    dummy_partition = DummyPartition(each_disk, logical_disk)
-                    logical_disk.add_partition(dummy_partition)
+                    checked_logical_disk = self._add_logical_disk(logical_disk)
+                    dummy_partition = DummyPartition(each_disk, checked_logical_disk)
+                    checked_logical_disk.add_partition(dummy_partition)
         
+    def _add_logicaldisk(self, logical_disk: 'LogicalDisk') -> 'LogicalDisk':
+        return_logical_disk = None
+        for each_logical_disk in self['Logical Disks']:
+            if each_logical_disk['Name'] == logical_disk['Name']:
+                return_logical_disk = each_logical_disk
+                break
+        if not return_logical_disk:
+            return_logical_disk = logical_disk
+            self['Logical Disks'].append(logical_disk)
+        return return_logical_disk
+
 
 class WindowsSystem(System):
     """This is the win32 version of the System class.
