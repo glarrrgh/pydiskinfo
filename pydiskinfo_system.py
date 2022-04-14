@@ -158,7 +158,7 @@ class LinuxSystem(System):
         try:
             with open('/proc/partitions', 'r') as proc_partitions:
                 for each_line in proc_partitions:
-                    match = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*')
+                    match = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*', each_line)
                     if match:
                         block_devices.append(match.group(1, 2, 3, 4))
         except FileNotFoundError:
