@@ -185,11 +185,11 @@ class LinuxSystem(System):
                         disk = each_disk
                         break
                 partition = LinuxPartition(disk, 
-                                           int(each_device[0], 
+                                           int(each_device[0]), 
                                            int(each_device[1]),
                                            int(each_device[2]),
                                            each_device[3]
-                                           ))
+                                           )
                 disk._add_partition(partition)
                 self['Partitions'].append(partition)
 
