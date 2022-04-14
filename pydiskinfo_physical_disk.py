@@ -70,7 +70,7 @@ class LinuxPhysicalDisk(PhysicalDisk):
         super().__init__(system)
         self['Major Number'] = major_number
         self['Minor Number'] = minor_number
-        self['Name'] = device_name
+        self._set_name_and_path(device_name)
         self._set_size_and_sectors(size_in_sectors)
 
     def _set_size_and_sectors(self, sectors: int, sector_size: int = 512) -> None:
@@ -82,6 +82,10 @@ class LinuxPhysicalDisk(PhysicalDisk):
     def _add_partition(self, partition: 'Partition') -> None:
         """Adds a partition to the pysical disk."""
         self['Partitions'].append(partition)
+
+    def _set_name_and_path(self, name):
+        self['Name'] = name
+        self['Path'] = f'/dev/{name}'
         
 
 

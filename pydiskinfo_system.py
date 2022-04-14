@@ -22,6 +22,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
+from asyncio import subprocess
 import sys
 import os
 import re
@@ -30,15 +31,9 @@ try:
     import platform
 except ModuleNotFoundError:
     platform = None
-try:
-    import distro
-except ModuleNotFoundError:
-    distro = None
 
 from human_readable_units import UNITS, human_readable_units
-from pydiskinfo_logical_disk import LogicalDisk
-from pydiskinfo_partition import Partition
-from pydiskinfo_physical_disk import PhysicalDisk
+from pydiskinfo_partition import DummyPartition
 
 if sys.platform == 'win32':
     import wmi
@@ -46,11 +41,16 @@ if sys.platform == 'win32':
     from pydiskinfo_partition import WindowsPartition
     from pydiskinfo_physical_disk import WindowsPhysicalDisk
 elif sys.platform == 'linux':
+    import subprocess
+    try:
+        import distro
+    except ModuleNotFoundError:
+        distro = None
     from pydiskinfo_logical_disk import LinuxLogicalDisk
     from pydiskinfo_partition import LinuxPartition
     from pydiskinfo_physical_disk import LinuxPhysicalDisk
 
-class DiskInfoParseError(Exception):
+class PyDiskInfoParseError(Exception):
     """General exception raised during system parsing. 
     
     It will be raised when parsing fails for some reason. The instance will 
@@ -59,8 +59,8 @@ class DiskInfoParseError(Exception):
     this information. But if this is raised, it is usually because of access 
     rights."""
 
-    def __init__(self, message):
-        super().__init__(message)
+    def __init__(self, message, error):
+        super().__init__(message, error)
         
 
 class System(dict):
@@ -164,8 +164,8 @@ class LinuxSystem(System):
                     match = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*', each_line)
                     if match:
                         block_devices.append(match.group(1, 2, 3, 4))
-        except FileNotFoundError:
-            raise DiskInfoParseError('Missing /proc/partitions. Giving up parsing.')
+        except FileNotFoundError as err:
+            raise PyDiskInfoParseError('Missing /proc/partitions. Giving up parsing.') from err
         for each_device in block_devices:
             if each_device[1] == '0':
                 self['Physical Disks'].append(
@@ -192,7 +192,40 @@ class LinuxSystem(System):
                                            )
                 disk._add_partition(partition)
                 self['Partitions'].append(partition)
-
+        logical_disks = []
+        try:
+            mounts = subprocess.run((
+                                        'df', 
+                                        '--output=source,fstype,size,avail,target', 
+                                        '--local',
+                                        '--block-size=1'
+                                    ),
+                                    capture_output=True, 
+                                    text=True
+                                )
+            for each_line in mounts.stdout.split('\n'):
+                match = re.search(r'(.*\w)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\/.*)', each_line)
+                if match:
+                    logical_disks.append(match.groups())
+        except OSError as err:
+            raise PyDiskInfoParseError('Cant find the "df" command.') from err
+        for each_logical_disk in logical_disks:
+            logical_disk = LinuxLogicalDisk(self, 
+                                            each_logical_disk[4], 
+                                            each_logical_disk[1], 
+                                            int(each_logical_disk[2]),
+                                            int(each_logical_disk[3])
+                                            )
+            self['Logical Disks'].append(logical_disk)
+            for each_partition in self['Partitions']:
+                if each_partition['Path'] == each_logical_disk[0]:
+                    each_partition.add_logical_disk(logical_disk)
+                    logical_disk.add_partition(each_partition)
+            for each_disk in self['Physical Disks']:
+                if each_disk['Path'] == each_logical_disk[0]:
+                    dummy_partition = DummyPartition(each_disk, logical_disk)
+                    logical_disk.add_partition(dummy_partition)
+        
 
 class WindowsSystem(System):
     """This is the win32 version of the System class.
@@ -212,9 +245,9 @@ class WindowsSystem(System):
         try:
             cursor = wmi.WMI()            
         except wmi.x_access_denied as err:
-            raise DiskInfoParseError from err
+            raise PyDiskInfoParseError('Access to wmi is denied.') from err
         except wmi.x_wmi_authentication as err:
-            raise DiskInfoParseError from err
+            raise PyDiskInfoParseError('Authentication error when opening wmi') from err
         for each_disk in cursor.Win32_DiskDrive():
             disk = WindowsPhysicalDisk(each_disk, self)
             self['Physical Disks'].append(disk)

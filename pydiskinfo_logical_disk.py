@@ -55,8 +55,23 @@ class LogicalDisk(dict):
 
 
 class LinuxLogicalDisk(LogicalDisk):
-    def __init__(self, system: object) -> None:
+    def __init__(self, 
+                 system: object, 
+                 path: str, 
+                 file_system: str, 
+                 size: int, 
+                 free_space: int
+            ) -> None:
         super().__init__(system)
+        self._set_path_device_id_and_name(path)
+        self['File System'] = file_system
+        self['Size'] = size
+        self['Free Space'] = free_space
+
+    def _set_path_device_id_and_name(self, path):
+        self['Path'] = path
+        self['Device I.D.'] = path
+        self['Name'] = path
 
 class WindowsLogicalDisk(LogicalDisk):
     _DRIVETYPES = [ 'Unknown', 

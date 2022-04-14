@@ -22,6 +22,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
+import os
+
 from human_readable_units import human_readable_units
 
 
@@ -49,6 +51,7 @@ class Partition(dict):
         self['Size'] = 0
         self['Starting Offset'] = -1
         self['Type'] = ""
+        self.dummy = False
 
     def add_logical_disk(self, logical_disk: 'LogicalDisk') -> None:
         """Set the logical disk connected to this partition."""
@@ -69,6 +72,15 @@ class Partition(dict):
         logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self['Logical Disks']] 
         return "\n".join((partition, *logical_disks))
 
+class DummyPartition(Partition):
+    def __init__(self, disk: 'PhysicalDisk', logical_disk: 'LogicalDisk'):
+        super().__init__(disk)
+        self.dummy = True
+        self.add_logical_disk(logical_disk)
+
+    def __str__(self) -> str:
+        return str(self['Logical Disks'][0])
+
 
 class LinuxPartition(Partition):
     def __init__(self, 
@@ -79,6 +91,19 @@ class LinuxPartition(Partition):
                 device_name: str
                 ) -> None:
         super().__init__(disk)
+        self['Major Number'] = major_number
+        self['Minor Number'] = minor_number
+        self._set_blocks_and_size(size_in_sectors)
+        
+    def _set_blocks_and_size(self, sectors: int, sector_size: int = 512) -> None:
+        self['Number of Blocks'] = sectors
+        self['Size'] = sectors * sector_size
+        self['Blocksize']
+
+    def _set_device_id_and_path(self, name: str) -> None:
+        self['Device I.D.'] = name
+        self['Path'] = f'/dev/{name}'
+
 
 class WindowsPartition(Partition):
     def __init__(self, partition: 'wmi._wmi_object', disk: 'PhysicalDisk') -> None:
