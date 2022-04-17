@@ -167,7 +167,21 @@ class LinuxSystem(System):
         except FileNotFoundError as err:
             raise PyDiskInfoParseError('Missing /proc/partitions. Giving up parsing.') from err
         for each_device in block_devices:
-            if each_device[1] == '0':
+            # handeling scsi hard drives
+            if each_device[0] in ('8'):
+                if not int(each_device[1]) // 16:
+                    self['Physical Disks'].append(
+                        LinuxPhysicalDisk(
+                            self, 
+                            int(each_device[0]),
+                            int(each_device[1]),
+                            int(each_device[2]),
+                            each_device[3]
+                        )
+                    )
+            # handeling metadisk (raid) devices
+            elif each_device[0] == '9':
+                # read from /proc/mdstat
                 self['Physical Disks'].append(
                         LinuxPhysicalDisk(
                             self, 
