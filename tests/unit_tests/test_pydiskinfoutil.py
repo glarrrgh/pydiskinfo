@@ -1,18 +1,11 @@
-import pytest
-from pydiskinfoutil import (
-    str_system
-)
-
-@pytest.fixture
-def windowssystem():
-    """A mock windows system"""
-    system = None
-    return system
+from unittest import TestCase
 
 
-def test_str_system():
-    """Test the str_system function"""
-
-
-def test_main():
-    """Test the main function"""
+class PackageTests(TestCase):
+    def test_package_execution(self) -> None:
+        try:
+            import src.pydiskinfo.__main__
+        except ImportError:
+            raise AssertionError(
+                'src/pydiskinfo/__main__.py does not seem to exist'
+                )

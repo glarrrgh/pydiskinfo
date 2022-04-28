@@ -2,15 +2,16 @@
 import platform
 import unittest
 import subprocess
+import os.path
 
 
 class CommandlineTests(unittest.TestCase):
     def setUp(self) -> None:
         self.commandline = None
         if platform.system() == 'Windows':
-            self.commandline = ['py', '-3', '.']
+            self.commandline = ['py', '-3', os.path.normpath('src/pydiskinfo')]
         elif platform.system() == 'Linux':
-            self.commandline = ['python3', '.']
+            self.commandline = ['python3', os.path.normpath('src/pydiskinfo')]
 
     def test_default_commandline_usage(self) -> None:
         """
