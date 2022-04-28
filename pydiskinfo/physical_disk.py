@@ -22,7 +22,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from human_readable_units import human_readable_units
+from . human_readable_units import human_readable_units
 
 
 class PhysicalDisk(dict):

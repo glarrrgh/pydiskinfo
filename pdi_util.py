@@ -21,12 +21,12 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-
 import argparse
-
-from pydiskinfo import System, PhysicalDisk, Partition, LogicalDisk
-from human_readable_units import human_readable_units
-
+from pydiskinfo.system import System
+from pydiskinfo.human_readable_units import human_readable_units
+from pydiskinfo.physical_disk import PhysicalDisk
+from pydiskinfo.logical_disk import LogicalDisk
+from pydiskinfo.partition import Partition
 
 def str_system(system: System) -> str:
     """Returns a string representation of the system consisting of the

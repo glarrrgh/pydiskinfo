@@ -32,23 +32,23 @@ try:
 except ModuleNotFoundError:
     platform = None
 
-from human_readable_units import UNITS, human_readable_units
-from pydiskinfo_partition import DummyPartition
+from . human_readable_units import UNITS, human_readable_units
+from . partition import DummyPartition
 
 if sys.platform == 'win32':
     import wmi
-    from pydiskinfo_logical_disk import WindowsLogicalDisk
-    from pydiskinfo_partition import WindowsPartition
-    from pydiskinfo_physical_disk import WindowsPhysicalDisk
+    from . logical_disk import WindowsLogicalDisk
+    from . partition import WindowsPartition
+    from . physical_disk import WindowsPhysicalDisk
 elif sys.platform == 'linux':
     import subprocess
     try:
         import distro
     except ModuleNotFoundError:
         distro = None
-    from pydiskinfo_logical_disk import LinuxLogicalDisk
-    from pydiskinfo_partition import LinuxPartition
-    from pydiskinfo_physical_disk import LinuxPhysicalDisk
+    from . logical_disk import LinuxLogicalDisk
+    from . partition import LinuxPartition
+    from . physical_disk import LinuxPhysicalDisk
 
 class PyDiskInfoParseError(Exception):
     """General exception raised during system parsing. 

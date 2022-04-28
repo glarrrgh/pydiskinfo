@@ -8,9 +8,9 @@ class CommandlineTests(unittest.TestCase):
     def setUp(self) -> None:
         self.commandline = None
         if platform.system() == 'Windows':
-            self.commandline = ['py', '-3', 'pdiutil.py']
+            self.commandline = ['py', '-3', '.']
         elif platform.system() == 'Linux':
-            self.commandline = ['python3', 'pdiutil.py']
+            self.commandline = ['python3', '.']
 
     def test_default_commandline_usage(self) -> None:
         """

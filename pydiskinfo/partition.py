@@ -24,7 +24,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
 
-from human_readable_units import human_readable_units
+from . human_readable_units import human_readable_units
 
 
 class Partition(dict):
