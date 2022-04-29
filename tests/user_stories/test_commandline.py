@@ -9,7 +9,7 @@ class CommandlineTests(unittest.TestCase):
     def setUp(self) -> None:
         self.commandline = None
         if platform.system() == 'Windows':
-            self.commandline = ['py', '-3', os.path.normpath('src/pydiskinfo')]
+            self.commandline = ['py', '-3', '-m', 'src.pydiskinfo']
         elif platform.system() == 'Linux':
             self.commandline = ['python3', os.path.normpath('src/pydiskinfo')]
 
@@ -31,10 +31,15 @@ class CommandlineTests(unittest.TestCase):
         except ValueError as valerr:
             raise AssertionError(str(valerr))
         except subprocess.CalledProcessError as callerr:
-            raise AssertionError(str(callerr))
+            raise AssertionError(f'{str(callerr)}\n########\n{callerr.stderr}')
         except subprocess.SubprocessError as suberr:
             raise AssertionError(str(suberr))
         """
-        Charlot can se some output
+        Charlot can se some output describing the disks connected to her pc
         """
-        self.assertGreater(len(output), 0)
+        self.assertRegexpMatches(output,
+            '^System -- .*?'
+            '\nPhysical disk -- .*?'
+            '\nPartition -- .*?'
+            '\nLogical disk -- .*?'
+            )

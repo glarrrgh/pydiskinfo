@@ -31,7 +31,6 @@ try:
     import platform
 except ModuleNotFoundError:
     platform = None
-
 from . human_readable_units import UNITS, human_readable_units
 from . partition import DummyPartition
 
@@ -51,17 +50,17 @@ elif sys.platform == 'linux':
     from . physical_disk import LinuxPhysicalDisk
 
 class PyDiskInfoParseError(Exception):
-    """General exception raised during system parsing. 
+    """General exception raised during system parsing.
     
-    It will be raised when parsing fails for some reason. The instance will 
-    then be empty. Catching this exception will be the proper way to detect 
-    that the instance should be diskarded. Usually any user have access to 
-    this information. But if this is raised, it is usually because of access 
+    It will be raised when parsing fails for some reason. The instance will
+    then be empty. Catching this exception will be the proper way to detect
+    that the instance should be diskarded. Usually any user have access to
+    this information. But if this is raised, it is usually because of access
     rights."""
 
     def __init__(self, message, error):
         super().__init__(message, error)
-        
+
 
 class System(dict):
     """'abstractish' class describing a system.
