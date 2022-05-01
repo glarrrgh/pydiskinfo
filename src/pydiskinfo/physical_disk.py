@@ -35,15 +35,15 @@ class PhysicalDisk(dict):
         self['Disk Number'] = -1
         self['Device I.D.'] = ""
         self['Path'] = ""
-        self['Media Type'] = ""
-        self['Serial Number'] = ""
+        self['Media'] = ""
+        self['Serial'] = ""
         self['Model'] = ""
         self['Sectors'] = 0
         self['Heads'] = 0
         self['Cylinders'] = 0
         self['Bytes per Sector'] = 0
-        self['Firmware Version'] = ""
-        self['Interface Type'] = ""
+        self['Firmware'] = ""
+        self['Interface'] = ""
         self['Media Loaded'] = False
         self['Status'] = ""
 
@@ -55,7 +55,7 @@ class PhysicalDisk(dict):
         """Overloading the string method"""
         disk = 'Disk -- ' + ", ".join(("Disk Number: {}".format(self['Disk Number']), 
                                        "Path: " + self['Path'], 
-                                       "Media Type: " + self['Media Type'], 
+                                       "Media: " + self['Media'], 
                                        "Size: " + human_readable_units(self['Size'])
                                        ))
         partitions = ["\n".join(
@@ -72,8 +72,8 @@ class LinuxPhysicalDisk(PhysicalDisk):
                 device_name: str
                 ) -> None:
         super().__init__(system)
-        self['Major Number'] = major_number
-        self['Minor Number'] = minor_number
+        self['Major'] = major_number
+        self['Minor'] = minor_number
         self._set_name_and_path(device_name)
         self._set_size_and_sectors(size_in_sectors)
 
@@ -85,8 +85,7 @@ class LinuxPhysicalDisk(PhysicalDisk):
 
     def _set_name_and_path(self, name):
         self['Name'] = name
-        self['Path'] = f'/dev/{name}'
-        
+        self['Path'] = f'/dev/{name}'        
 
 
 class WindowsPhysicalDisk(PhysicalDisk):
@@ -132,15 +131,15 @@ class WindowsPhysicalDisk(PhysicalDisk):
 
     def _set_media_type(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self['Media Type'] = wmi_physical_disk.MediaType
+            self['Media'] = wmi_physical_disk.MediaType
         except AttributeError:
-            self['Media Type'] = ""
+            self['Media'] = ""
 
     def _set_serial_number(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self['Serial Number'] = wmi_physical_disk.SerialNumber
+            self['Serial'] = wmi_physical_disk.SerialNumber
         except AttributeError:
-            self['Serial Number'] = ""
+            self['Serial'] = ""
 
     def _set_model(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
@@ -185,9 +184,9 @@ class WindowsPhysicalDisk(PhysicalDisk):
 
     def _set_interface_type(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:
-            self['Interface_type'] = wmi_physical_disk.InterfaceType
+            self['Interface'] = wmi_physical_disk.InterfaceType
         except AttributeError:
-            self['Interface_type'] = ""
+            self['Interface'] = ""
 
     def _set_media_loaded(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
         try:

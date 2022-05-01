@@ -37,9 +37,9 @@ class CommandlineTests(unittest.TestCase):
         """
         Charlot can se some output describing the disks connected to her pc
         """
-        self.assertRegexpMatches(output,
-            '^System -- .*?'
-            '\nPhysical disk -- .*?'
-            '\nPartition -- .*?'
-            '\nLogical disk -- .*?'
+        self.assertRegex(output,
+            r'^System -- .*?'
+            r'\\nPhysical disk -- .*?'
+            r'\\nPartition -- .*?'
+            r'\\nLogical disk -- .*?'
             )

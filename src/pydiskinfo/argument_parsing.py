@@ -1,11 +1,202 @@
 from argparse import ArgumentParser, RawTextHelpFormatter
 
 
-def get_arguments() -> dict:
+class SanitizedArguments:
+    def __init__(self, arguments: dict = None) -> None:
+        if not arguments:
+            arguments = {}
+        try:
+            self.logical_disk_orientation = arguments['l']
+        except KeyError:
+            self.logical_disk_orientation = False
+        try:
+            (
+                self.physical_disk_options,
+                self.physical_disk_list_partitions,
+                self.physical_disk_size_human_readable
+            ) = self._parse_dp(arguments['dp'])
+        except KeyError:
+            self.physical_disk_options = []
+            self.physical_disk_list_partitions = False
+            self.physical_disk_size_human_readable = False
+        try:
+            (
+                self.partition_options,
+                self.partition_list_logical_disks,
+                self.partition_show_physical_disk,
+                self.partition_size_human_readable
+            ) = self._parse_pp(arguments['pp'])
+        except KeyError:
+            self.partition_options = []
+            self.partition_list_logical_disks = False
+            self.partition_show_physical_disk = False
+            self.partition_size_human_readable = False
+        try:
+            (
+                self.logical_disk_options,
+                self.logical_disk_list_partitions,
+                self.logical_disk_size_human_readable
+            ) = self._parse_lp(arguments['lp'])
+        except KeyError:
+            self.logical_disk_options = []
+            self.logical_disk_list_partitions = False
+            self.logical_disk_size_human_readable = False
+        try:
+            self.list_from_partitions = arguments['p']
+        except KeyError:
+            self.list_from_partitions = False
+        try:
+            if arguments['n']:
+                self.system_name = arguments['n']
+            else:
+                self.system_name = ''
+        except KeyError:
+            self.system_name = ''
+        
+    def _add_to_list(self, some_list: list, item: str) -> None:
+        if item not in some_list:
+            some_list.append(item)
+
+    def _parse_dp(self, arguments: str) -> tuple:
+        size_human_readable = False
+        list_partitions = False
+        return_list = []
+        for each_option in arguments:
+            if each_option == 'P':
+                list_partitions = True
+            elif each_option == 's':
+                self._add_to_list(return_list, 'Size')
+                size_human_readable = True
+            elif each_option == 'S':
+                self._add_to_list(return_list, 'Size')
+                size_human_readable = False
+            elif each_option == 'i':
+                self._add_to_list(return_list, 'Disk Number')
+            elif each_option == 'd':
+                self._add_to_list(return_list, 'Device I.D.')
+            elif each_option == 'p':
+                self._add_to_list(return_list, 'Path')
+            elif each_option == 't':
+                self._add_to_list(return_list, 'Media')
+            elif each_option == 'n':
+                self._add_to_list(return_list, 'Serial')
+            elif each_option == 'm':
+                self._add_to_list(return_list, 'Model')
+            elif each_option == 'c':
+                self._add_to_list(return_list, 'Sectors')
+            elif each_option == 'b':
+                self._add_to_list(return_list, 'Bytes per Sector')
+            elif each_option == 'h':
+                self._add_to_list(return_list, 'Heads')
+            elif each_option == 'C':
+                self._add_to_list(return_list, 'Cylinders')
+            elif each_option == 'f':
+                self._add_to_list(return_list, 'Firmware')
+            elif each_option == 'I':
+                self._add_to_list(return_list, 'Interface')
+            elif each_option == 'M':
+                self._add_to_list(return_list, 'Media Loaded')
+            elif each_option == 'a':
+                self._add_to_list(return_list, 'Status')
+            
+        return return_list, list_partitions, size_human_readable
+
+    def _parse_pp(self, arguments: str) -> tuple:
+        size_human_readable = False
+        list_logical_disks = False
+        show_physical_disk = False
+        return_list = []
+        for each_option in arguments:
+            if each_option == 'L':
+                list_logical_disks = True
+            elif each_option == 'D':
+                show_physical_disk = True
+            elif each_option == 'b':
+                self._add_to_list(return_list, 'Blocksize')
+            elif each_option == 'B':
+                self._add_to_list(return_list, 'Bootable')
+            elif each_option == 'o':
+                self._add_to_list(return_list, 'Active')
+            elif each_option == 'x':
+                self._add_to_list(return_list, 'Description')
+            elif each_option == 'p':
+                self._add_to_list(return_list, 'Path')
+            elif each_option == 'd':
+                self._add_to_list(return_list, 'Device I.D.')
+            elif each_option == 'i':
+                self._add_to_list(return_list, 'Disk Number')
+            elif each_option == 'N':
+                self._add_to_list(return_list, 'Partition Number')
+            elif each_option == 'c':
+                self._add_to_list(return_list, 'Blocks')
+            elif each_option == 'r':
+                self._add_to_list(return_list, 'Primary')
+            elif each_option == 's':
+                self._add_to_list(return_list, 'Size')
+                size_human_readable = True
+            elif each_option == 'S':
+                self._add_to_list(return_list, 'Size')
+                size_human_readable = False
+            elif each_option == 'e':
+                self._add_to_list(return_list, 'Offset')
+            elif each_option == 't':
+                self._add_to_list(return_list, 'Type')
+
+        return (
+            return_list,
+            list_logical_disks,
+            show_physical_disk,
+            size_human_readable
+        )
+    
+    def _parse_lp(self, arguments: str) -> tuple:
+        size_human_readable = False
+        list_partitions = False
+        return_list = []
+        for each_option in arguments:
+            if each_option == 'P':
+                list_partitions = True
+            elif each_option == 'x':
+                self._add_to_list(return_list, 'Description')
+            elif each_option == 'd':
+                self._add_to_list(return_list, 'Device I.D.')
+            elif each_option == 't':
+                self._add_to_list(return_list, 'Type')
+            elif each_option == 'f':
+                self._add_to_list(return_list, 'Filesystem')
+            elif each_option == 'F':
+                self._add_to_list(return_list, 'Free Space')
+            elif each_option == 'U':
+                self._add_to_list(return_list, 'Max Component Length')
+            elif each_option == 'v':
+                self._add_to_list(return_list, 'Name')
+            elif each_option == 'M':
+                self._add_to_list(return_list, 'Mounted')
+            elif each_option == 'p':
+                self._add_to_list(return_list, 'Path')
+            elif each_option == 's':
+                self._add_to_list(return_list, 'Size')
+                size_human_readable = True
+            elif each_option == 'S':
+                self._add_to_list(return_list, 'Size')
+                size_human_readable = False
+            elif each_option == 'V':
+                self._add_to_list(return_list, 'Label')
+            elif each_option == 'n':
+                self._add_to_list(return_list, 'Serial')
+
+        return (
+            return_list,
+            list_partitions,
+            size_human_readable
+        )
+
+
+def get_arguments() -> SanitizedArguments:
     argument_parser = ArgumentParser(
         description="""List system block devices.
 
-The default behaviour is to list all devices from the system down trough
+The default behaviour is to list all devices from the system down through
 physical disk and partitions, to logical disks. The partitions are only
 "physical" partitions. That means that they are part of a physical disk, and
 not part of a volume manager device. And logical disks will not show all
@@ -14,7 +205,7 @@ for instance, will not show up in the listings. """,
         epilog="""Physical disk properties:
 Combine the corresponding characters in a string after the -dp option. Order
 will be kept according to the string, except for the partition list.
-Default: -dp Pipts
+Default: -dp Piptns
 
     P   List partitions under each disk. The partition properties will be
         listed according to the -pp option.
@@ -27,7 +218,7 @@ Default: -dp Pipts
     n   Show device serial number.
     m   Show model of device as registered by the system.
     c   Show number of sectors as repported by the system.
-    b   Show bytes per sector. This is a good guide for block size.
+    b   Show bytes per sector. This is a good indication for block size.
     h   Show number of heads.
     C   Show number of cylinders.
     f   Show firmware version.
@@ -64,21 +255,21 @@ Default: -pp LDdtse
 Logical disk properties:
 Combine the corresponding characters in a string after the -lp option. Order
 will be kept according to the string, except for the partition list.
-Default: -lp PpVtfF
+Default: -lp PpVfF
 
     P   List partitions that make up each logical disk. Ignored unless -l is
         specified.
     x   Show a description created by the system.
     d   Show the system device I.D.
     t   Show some type information about the logical disk.
-    f   Show filesystem in text.
+    f   Show filesystem type in text.
     F   Show free space on the partition, if available. If it is 0, this
         information was probably not available.
     U   Show the maximum component lengt or path lenght on the filesystem.
     v   Show logical disk name.
-    p   Show a path usable for raw access. Will show the regular access path in
-        windows. On windows you will have to read each physical disk and use
-        partition <size> and <starting offset> to get the raw access.
+    M   Show mounted Path (first available)
+    p   Will show a raw access path, if available. If blank, you will have to
+        do this via the partition
     s   Show size in human readable format.
     S   Show size in bytes.
     V   Show volume name. For instance the volume label.
@@ -89,7 +280,7 @@ Default: -lp PpVtfF
     argument_parser.add_argument(
         '-dp',
         type=str,
-        default='Pipts',
+        default='Piptns',
         help='Physical disk properties to include in output'
     )
     argument_parser.add_argument(
@@ -101,7 +292,7 @@ Default: -lp PpVtfF
     argument_parser.add_argument(
         '-lp',
         type=str,
-        default='PpVtfF',
+        default='PpVfF',
         help='Logical disk properties to include in output'
     )
     argument_parser.add_argument(
@@ -126,4 +317,5 @@ normal behaviour.
         type=str,
         help='Add a system name, if you need to differentiate between outputs.'
     )
-    return vars(argument_parser.parse_args())
+    return SanitizedArguments(vars(argument_parser.parse_args()))
+

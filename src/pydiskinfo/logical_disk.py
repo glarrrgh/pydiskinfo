@@ -33,15 +33,15 @@ class LogicalDisk(dict):
         self['Partitions'] = []
         self['Description'] = ""
         self['Device I.D.'] = ""
-        self['Drive Type'] = ""
-        self['File System'] = ""
+        self['Type'] = ""
+        self['Filesystem'] = ""
         self['Free Space'] = 0
-        self['Maximum Component Length'] = -1
+        self['Max Component Length'] = -1
         self['Name'] = ""
         self['Path'] = ""
         self['Size'] = 0
-        self['Volume Name'] = ""
-        self['Volume Serial Number'] = ""
+        self['Label'] = ''
+        self['Serial'] = ""
 
     def add_partition(self, partition: 'Partition') -> None:
         """Add a partition to this logical disk"""
@@ -49,8 +49,8 @@ class LogicalDisk(dict):
     
     def __str__(self) -> str:
         return "Logical Disk -- " + ", ".join(("Path: " + self['Path'], 
-                                             'Volume Name: ' + self['Volume Name'],
-                                             'File System: ' + self['File System'],
+                                             'Label: ' + self['Label'],
+                                             'Filesystem: ' + self['Filesystem'],
                                              'Free Space: ' + human_readable_units(self['Free Space'])
                                            ))
 
@@ -65,7 +65,7 @@ class LinuxLogicalDisk(LogicalDisk):
             ) -> None:
         super().__init__(system)
         self._set_path_device_id_and_name(path)
-        self['File System'] = file_system
+        self['Filesystem'] = file_system
         self['Size'] = size
         self['Free Space'] = free_space
 
@@ -125,18 +125,18 @@ class WindowsLogicalDisk(LogicalDisk):
         except ValueError:
             drivetype = 0
         try:
-            self['Drive Type'] = self._DRIVETYPES[drivetype]
+            self['Type'] = self._DRIVETYPES[drivetype]
         except IndexError:
-            self['Drive Type'] = self._DRIVETYPES[0]
+            self['Type'] = self._DRIVETYPES[0]
 
     def _set_file_system(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the filesystem according to the system."""
         try:
-            self['File System'] = logical_disk.FileSystem
-            if type(self['File System']) != str:
-                self['File System'] = "unknown"
+            self['Filesystem'] = logical_disk.FileSystem
+            if type(self['Filesystem']) != str:
+                self['Filesystem'] = "unknown"
         except AttributeError:
-            self['File System'] = "unknown"
+            self['Filesystem'] = "unknown"
 
     def _set_free_space(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the available space on the filesystem in bytes"""
@@ -152,13 +152,13 @@ class WindowsLogicalDisk(LogicalDisk):
     def _set_maximum_component_length(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the max path length in characters."""
         try:
-            self['Maximum Component Length'] = int(logical_disk.MaximumComponentLength)
+            self['Max Component Length'] = int(logical_disk.MaximumComponentLength)
         except AttributeError:
-            self['Maximum Component Length'] = 0
+            self['Max Component Length'] = 0
         except ValueError:
-            self['Maximum Component Length'] = 0
+            self['Max Component Length'] = 0
         except TypeError:
-            self['Maximum Component Length'] = 0
+            self['Max Component Length'] = 0
 
     def _set_size(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the size in bytes."""
@@ -174,19 +174,19 @@ class WindowsLogicalDisk(LogicalDisk):
     def _set_volume_name(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the volume name. Usually the Label value."""
         try:
-            self['Volume Name'] = logical_disk.VolumeName
-            if type(self['Volume Name']) != str:
-                self['Volume Name'] = ""
+            self['Label'] = logical_disk.VolumeName
+            if type(self['Label']) != str:
+                self['Label'] = ""
         except AttributeError:
-            self['Volume Name'] = ""
+            self['Label'] = ""
 
     def _set_volume_serial_number(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the volume serial number."""
         try:
-            self['Volume Serial Number'] = logical_disk.VolumeSerialNumber
-            if type(self['Volume Serial Number']) != str:
-                self['Volume Serial Number'] = ""
+            self['Serial'] = logical_disk.VolumeSerialNumber
+            if type(self['Serial']) != str:
+                self['Serial'] = ""
         except AttributeError:
-            self['Volume Serial Number'] = ""
+            self['Serial'] = ""
 
 

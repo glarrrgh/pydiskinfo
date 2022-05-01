@@ -46,10 +46,10 @@ class Partition(dict):
         self['Device I.D.'] = ""
         self['Disk Number'] = -1
         self['Partition Number'] = -1
-        self['Number of Blocks'] = -1
-        self['Primary Partition'] = False
+        self['Blocks'] = -1
+        self['Primary'] = False
         self['Size'] = 0
-        self['Starting Offset'] = -1
+        self['Offset'] = -1
         self['Type'] = ""
         self.isdummy = False
 
@@ -67,7 +67,7 @@ class Partition(dict):
         partition = 'Partition -- ' + ", ".join(('ID: ' + self['Device I.D.'], 
                                                'Type: ' + self['Type'], 
                                                'Size: ' + human_readable_units(self['Size']), 
-                                               'Offset: '+ str(self['Starting Offset'])
+                                               'Offset: '+ str(self['Offset'])
                                                ))
         logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self['Logical Disks']] 
         return "\n".join((partition, *logical_disks))
@@ -180,18 +180,18 @@ class WindowsPartition(Partition):
     def _set_number_of_blocks(self, partition: 'wmi._wmi_object') -> None:
         """Set number of blocks."""
         try:
-            self._number_of_blocks = int(partition.NumberOfBlocks)
+            self['Blocks'] = int(partition.NumberOfBlocks)
         except AttributeError:
-            self._number_of_blocks = -1
+            self['Blocks'] = -1
         except ValueError:
-            self._number_of_blocks = -1
+            self['Blocks'] = -1
 
     def _set_primary_partition(self, partition: 'wmi._wmi_object') -> None:
         """Set if the partition is a primary partition"""
         try:
-            self['Primary Partition'] = int(partition.PrimaryPartition)
+            self['Primary'] = int(partition.PrimaryPartition)
         except AttributeError:
-            self['Primary Partition'] = False
+            self['Primary'] = False
 
     def _set_size(self, partition: 'wmi._wmi_object') -> None:
         """Set partition size in bytes."""
@@ -205,11 +205,11 @@ class WindowsPartition(Partition):
     def _set_starting_offset(self, partition: 'wmi._wmi_object') -> None:
         """Set partition starting offset in bytes."""
         try:
-            self['Starting Offset'] = int(partition.StartingOffset)
+            self['Offset'] = int(partition.StartingOffset)
         except AttributeError:
-            self['Starting Offset'] = -1
+            self['Offset'] = -1
         except ValueError:
-            self['Starting Offset'] = -1
+            self['Offset'] = -1
 
     def _set_type(self, partition: 'wmi._wmi_object') -> None:
         """Set partition type."""

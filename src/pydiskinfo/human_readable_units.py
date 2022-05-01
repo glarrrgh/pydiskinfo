@@ -107,7 +107,7 @@ def _calculate_auto_unit(value: int, value_type: str) -> Tuple[float, str]:
                 raise ReadableUnitError(
                     message=f'{str(ke)} is not a valid unit type'
                 )
-            if return_value > 1:
+            if return_value >= 1:
                 break
     except KeyError as ke:
         raise ReadableUnitError(
