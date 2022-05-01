@@ -14,7 +14,7 @@ class TestGetArguments(TestCase):
         self.assertFalse(sanitized_arguments.logical_disk_orientation)
         self.assertEqual(
             sanitized_arguments.physical_disk_options, 
-            ['Disk Number', 'Path', 'Media', 'Size']
+            ['Disk Number', 'Path', 'Media', 'Serial', 'Size']
         )
         self.assertEqual(
             sanitized_arguments.partition_options,
@@ -22,7 +22,7 @@ class TestGetArguments(TestCase):
         )
         self.assertEqual(
             sanitized_arguments.logical_disk_options,
-            ['Path', 'Label', 'Type', 'Filesystem', 'Free Space']
+            ['Path', 'Label', 'Filesystem', 'Free Space']
         )
         self.assertEqual(sanitized_arguments.system_name, '')
         self.assertFalse(sanitized_arguments.list_from_partitions)
