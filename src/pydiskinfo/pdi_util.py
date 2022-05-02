@@ -111,95 +111,96 @@ def str_logical_disk(
 
 def main() -> None:
     arguments = get_arguments()
-    system = System(arguments.system_name)
-    print(str_system(system))
-    if arguments.logical_disk_orientation:
-        indent = 2
-        if not arguments.list_from_partitions:
-            for each_logical_disk in system['Logical Disks']:
-                logical_disk_string = str_logical_disk(
-                    each_logical_disk,
-                    arguments
-                )
-                print(
-                    f'{" "*indent}{logical_disk_string}'
-                )
-                indent += 2
-                if arguments.logical_disk_list_partitions:
-                    for each_partition in each_logical_disk['Partitions']:
-                        if not each_partition.isdummy:
-                            print(
-                                f'{" "*indent}'
-                                f'{str_partition(each_partition, arguments)}'
-                            )
-                            indent += 2
-                        if arguments.partition_show_physical_disk:
-                            physical_disk_string = str_physical_disk(
-                                each_partition["Physical Disk"],
-                                arguments
-                            )
-                            print(
-                                f'{" "*indent}{physical_disk_string}'
-                            )
-                        indent -= 2
-                indent -= 2
-        else:
-            for each_partition in system['Partitions']:
-                print(
-                    f'{" "*indent}'
-                    f'{str_partition(each_partition, arguments)}'
-                )
-                indent += 2
-                if arguments.partition_show_physical_disk:
-                    physical_disk_string = str_physical_disk(
-                        each_partition["Physical Disk"],
+    if arguments:
+        system = System(arguments.system_name)
+        print(str_system(system))
+        if arguments.logical_disk_orientation:
+            indent = 2
+            if not arguments.list_from_partitions:
+                for each_logical_disk in system['Logical Disks']:
+                    logical_disk_string = str_logical_disk(
+                        each_logical_disk,
                         arguments
                     )
                     print(
-                        f'{" "*indent}{physical_disk_string}'
+                        f'{" "*indent}{logical_disk_string}'
                     )
-                indent -= 2
-    else:
-        indent = 2
-        if not arguments.list_from_partitions:
-            for each_physical_disk in system['Physical Disks']:
-                physical_disk_string = str_physical_disk(
-                    each_physical_disk,
-                    arguments
-                )
-                print(f'{" "*indent}{physical_disk_string}')
-                indent += 2
-                if arguments.physical_disk_list_partitions:
-                    for each_partition in each_physical_disk["Partitions"]:
-                        if not each_partition.isdummy:
-                            partition_string = str_partition(
-                                each_partition,
-                                arguments
-                            )
-                            print(f'{" "*indent}{partition_string}')
-                            indent += 2
-                        if arguments.partition_list_logical_disks:
-                            for each_logical_disk in \
-                                    each_partition["Logical Disks"]:
-                                logical_disk_string = str_logical_disk(
-                                    each_logical_disk,
+                    indent += 2
+                    if arguments.logical_disk_list_partitions:
+                        for each_partition in each_logical_disk['Partitions']:
+                            if not each_partition.isdummy:
+                                print(
+                                    f'{" "*indent}'
+                                    f'{str_partition(each_partition, arguments)}'
+                                )
+                                indent += 2
+                            if arguments.partition_show_physical_disk:
+                                physical_disk_string = str_physical_disk(
+                                    each_partition["Physical Disk"],
                                     arguments
                                 )
-                                print(f'{" "*indent}{logical_disk_string}')
-                        indent -= 2
-                indent -= 2
-        else:
-            for each_partition in system['Partitions']:
-                print(f'{" "*indent}{str_partition(each_partition, arguments)}')
-                indent += 2
-                if arguments.partition_list_logical_disks:
-                    for each_logical_disk in each_partition['Logical Disks']:
-                        logical_disk_string = str_logical_disk(
-                            each_logical_disk,
+                                print(
+                                    f'{" "*indent}{physical_disk_string}'
+                                )
+                            indent -= 2
+                    indent -= 2
+            else:
+                for each_partition in system['Partitions']:
+                    print(
+                        f'{" "*indent}'
+                        f'{str_partition(each_partition, arguments)}'
+                    )
+                    indent += 2
+                    if arguments.partition_show_physical_disk:
+                        physical_disk_string = str_physical_disk(
+                            each_partition["Physical Disk"],
                             arguments
                         )
-                        print(f'{" "*indent}{logical_disk_string}')
-                indent -= 2
+                        print(
+                            f'{" "*indent}{physical_disk_string}'
+                        )
+                    indent -= 2
+        else:
+            indent = 2
+            if not arguments.list_from_partitions:
+                for each_physical_disk in system['Physical Disks']:
+                    physical_disk_string = str_physical_disk(
+                        each_physical_disk,
+                        arguments
+                    )
+                    print(f'{" "*indent}{physical_disk_string}')
+                    indent += 2
+                    if arguments.physical_disk_list_partitions:
+                        for each_partition in each_physical_disk["Partitions"]:
+                            if not each_partition.isdummy:
+                                partition_string = str_partition(
+                                    each_partition,
+                                    arguments
+                                )
+                                print(f'{" "*indent}{partition_string}')
+                                indent += 2
+                            if arguments.partition_list_logical_disks:
+                                for each_logical_disk in \
+                                        each_partition["Logical Disks"]:
+                                    logical_disk_string = str_logical_disk(
+                                        each_logical_disk,
+                                        arguments
+                                    )
+                                    print(f'{" "*indent}{logical_disk_string}')
+                            indent -= 2
+                    indent -= 2
+            else:
+                for each_partition in system['Partitions']:
+                    print(f'{" "*indent}{str_partition(each_partition, arguments)}')
+                    indent += 2
+                    if arguments.partition_list_logical_disks:
+                        for each_logical_disk in each_partition['Logical Disks']:
+                            logical_disk_string = str_logical_disk(
+                                each_logical_disk,
+                                arguments
+                            )
+                            print(f'{" "*indent}{logical_disk_string}')
+                    indent -= 2
 
 
 if __name__ == '__main__':

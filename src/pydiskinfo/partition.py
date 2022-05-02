@@ -191,7 +191,7 @@ class WindowsPartition(Partition):
     def _get_primary_partition(self) -> None:
         """Set if the partition is a primary partition"""
         try:
-            primary = bool(self._wmi_partition.PrimaryPartition)
+            primary = self._wmi_partition.PrimaryPartition
         except AttributeError:
             primary = False
         return primary

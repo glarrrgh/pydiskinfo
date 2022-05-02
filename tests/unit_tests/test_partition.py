@@ -6,7 +6,7 @@ class TestWindowsPartition(TestCase):
     def setUp(self) -> None:
         class FakeWmiPartition:
             def __init__(self) -> None:
-                self.PrimaryPartition = 1
+                self.PrimaryPartition = True
         self.fake_wmi_partition = FakeWmiPartition()
 
     def test_get_primary_partition(self) -> None:

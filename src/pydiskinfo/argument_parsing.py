@@ -275,7 +275,8 @@ Default: -lp PpVfF
     V   Show volume label.
     n   Show volume serial number.
 """,
-        formatter_class=RawTextHelpFormatter
+        formatter_class=RawTextHelpFormatter,
+        exit_on_error=False
     )
     argument_parser.add_argument(
         '-dp',
@@ -317,5 +318,9 @@ normal behaviour.
         type=str,
         help='Add a system name, if you need to differentiate between outputs.'
     )
-    return SanitizedArguments(vars(argument_parser.parse_args()))
+    try:
+        parsed_arguments = argument_parser.parse_args()
+    except SystemExit:
+        return None
+    return SanitizedArguments(vars(parsed_arguments))
 
