@@ -1,5 +1,6 @@
 # commandline tests
 import platform
+from sys import stderr
 from unittest import TestCase
 from unittest.mock import patch
 from contextlib import redirect_stderr, redirect_stdout
@@ -34,12 +35,10 @@ class CommandlineTests(TestCase):
         ):
             pdi_util.main()
         if stderr_stream.getvalue():
-            raise AssertionError(
-                f'Failed running main with "{" ".join(arguments)}"'
-                ' option:\n' +
-                stderr_stream.getvalue()
-            )
-        return output_stream.getvalue()
+            output = stderr_stream.getvalue()
+        else:
+            output = output_stream.getvalue()
+        return output
         
     def test_default_commandline_usage(self) -> None:
         """
@@ -108,24 +107,7 @@ class CommandlineTests(TestCase):
         """
         Charlotte tries the -l option and can see that the output is reversed
         """
-        with patch(
-            'wmi.WMI',
-            FakeWMIcursor
-        ), redirect_stdout(
-            StringIO()
-        ) as output_stream, redirect_stderr(
-            StringIO()
-        ) as stderr_stream, patch(
-            'sys.argv',
-            ['pydiskinfo', '-l']
-        ):
-            pdi_util.main()
-        if stderr_stream.getvalue():
-            raise AssertionError(
-                'Failed running main with -l option:\n' +
-                stderr_stream.getvalue()
-            )
-        output = output_stream.getvalue()
+        output = self.get_output(['-l'])
         out_re = re.compile(
             r'System -- [\S ]+?\n'
             r'  Logical Disk -- [\S ]+?\n'
@@ -138,24 +120,7 @@ class CommandlineTests(TestCase):
         Charlotte tries the -p option and can see that the output skips the
         physical disks
         """
-        with patch(
-            'wmi.WMI',
-            FakeWMIcursor
-        ), redirect_stdout(
-            StringIO()
-        ) as output_stream, redirect_stderr(
-            StringIO()
-        ) as stderr_stream, patch(
-            'sys.argv',
-            ['pydiskinfo', '-p']
-        ):
-            pdi_util.main()
-        if stderr_stream.getvalue():
-            raise AssertionError(
-                'Failed running main with -p option:\n' +
-                stderr_stream.getvalue()
-            )
-        output = output_stream.getvalue()
+        output = self.get_output(['-p'])
         out_re = re.compile(
             r'System -- [\S ]+?\n'
             r'  Partition -- [\S ]+?\n'
@@ -167,27 +132,77 @@ class CommandlineTests(TestCase):
         Charlotte tries the -l and -p option at the same time, and can see
         that the output start with partition and is reveresed
         """
-        with patch(
-            'wmi.WMI',
-            FakeWMIcursor
-        ), redirect_stdout(
-            StringIO()
-        ) as output_stream, redirect_stderr(
-            StringIO()
-        ) as stderr_stream, patch(
-            'sys.argv',
-            ['pydiskinfo', '-p', '-l']
-        ):
-            pdi_util.main()
-        if stderr_stream.getvalue():
-            raise AssertionError(
-                'Failed running main with -p option:\n' +
-                stderr_stream.getvalue()
-            )
-        output = output_stream.getvalue()
+        output = self.get_output(['-p', '-l'])
         out_re = re.compile(
             r'System -- [\S ]+?\n'
             r'  Partition -- [\S ]+?\n'
             r'    Physical Disk -- [\S ]+?\n'
         )
         self.assertRegex(output, out_re)
+
+        """
+        Charlotte tries the -dp option without P, and can see that only the 
+        physical disks are displayd
+        """
+        output = self.get_output(['-dp', 'ms'])
+        self.assertRegex(
+            output,
+            r'System -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+        )
+
+        """
+        Charlotte tries the -pp option without L, and can see that only the 
+        physical disks and their partitions are displayd
+        """
+        output = self.get_output(['-pp', 'Ns'])
+        self.assertRegex(
+            output,
+            r'System -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+        )
+
+        """
+        Charlotte tries the -p and -pp option without L, and can see that 
+        only the partitions are displayd
+        """
+        output = self.get_output(['-pp', 'Ns', '-p'])
+        self.assertRegex(
+            output,
+            r'System -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+        )
+
+        """
+        Charlotte types the wrong option -X and gets a message that the
+        option is unrecognized
+        """
+        output = self.get_output(['-X'])
+        self.assertRegex(
+            output,
+            r'.+\npydiskinfo: error: unrecognized arguments: -X\n'
+        )
+
+        """
+        Charlotte tries the -l and -pp option without D, and can see that 
+        only the logical disks and their partitions are displayd
+        """
+        output = self.get_output(['-pp', 'Ns', '-l'])
+        self.assertRegex(
+            output,
+            r'System -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+        )
+
+        """
+        Charlotte tries the -l, -p and -pp option without D, and can see that 
+        only the partitions are displayd
+        """
+        output = self.get_output(['-pp', 'Ns', '-l', '-p'])
+        self.assertRegex(
+            output,
+            r'System -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+        )
