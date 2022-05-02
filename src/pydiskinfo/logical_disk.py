@@ -42,6 +42,7 @@ class LogicalDisk(dict):
         self['Size'] = 0
         self['Label'] = ''
         self['Serial'] = ""
+        self['Mounted'] = ''
 
     def add_partition(self, partition: 'Partition') -> None:
         """Add a partition to this logical disk"""
@@ -86,8 +87,11 @@ class WindowsLogicalDisk(LogicalDisk):
 
     def __init__(self, logical_disk: 'wmi._wmi_object', system: 'System') -> None:
         super().__init__(system)
+        self._wmi_logical_disk = logical_disk
         self._set_description(logical_disk)
-        self._set_device_id_and_path_and_name(logical_disk)
+        self['Device I.D.'], self['Name'], self['Mounted'] = (
+            self._get_device_id_name_mounted()
+        )
         self._set_drive_type(logical_disk)
         self._set_file_system(logical_disk)
         self._set_free_space(logical_disk)
@@ -95,7 +99,7 @@ class WindowsLogicalDisk(LogicalDisk):
         self._set_size(logical_disk)
         self._set_volume_name(logical_disk)
         self._set_volume_serial_number(logical_disk)
-    
+
     def _set_description(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the description"""
         try:
@@ -105,16 +109,17 @@ class WindowsLogicalDisk(LogicalDisk):
         except AttributeError:
             self['Description'] = ""
 
-    def _set_device_id_and_path_and_name(self, logical_disk: 'wmi._wmi_object') -> None:
+    def _get_device_id_name_mounted(self) -> None:
         """Set the unique device ID and name. On windows this is pretty much the same as path."""
         try:
-            self['Device I.D.'] = logical_disk.DeviceID
-            if not type(self['Device I.D.']) == str:
-                self['Device I.D.'] = ""
+            device_id = self._wmi_logical_disk.DeviceID
+            if not type(device_id) == str:
+                device_id = ''
         except AttributeError:
-            self['Device I.D.'] = ""
-        self['Name'] = self['Device I.D.']
-        self['Path'] = self['Device I.D.'] + "\\"
+            device_id = ''
+        name = device_id
+        mounted = device_id + '\\'
+        return device_id, name, mounted
 
     def _set_drive_type(self, logical_disk: 'wmi._wmi_object') -> None:
         """Set the drive type."""

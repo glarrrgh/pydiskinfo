@@ -272,7 +272,7 @@ Default: -lp PpVfF
         do this via the partition
     s   Show size in human readable format.
     S   Show size in bytes.
-    V   Show volume name. For instance the volume label.
+    V   Show volume label.
     n   Show volume serial number.
 """,
         formatter_class=RawTextHelpFormatter

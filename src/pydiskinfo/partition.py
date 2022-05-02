@@ -23,6 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 import os
+from xmlrpc.client import boolean
 
 from . human_readable_units import human_readable_units
 
@@ -109,6 +110,7 @@ class LinuxPartition(Partition):
 class WindowsPartition(Partition):
     def __init__(self, partition: 'wmi._wmi_object', disk: 'PhysicalDisk') -> None:
         super().__init__(disk)
+        self._wmi_partition = partition
         self._set_blocksize(partition)
         self._set_bootable(partition)
         self._set_boot_partition(partition)
@@ -117,7 +119,7 @@ class WindowsPartition(Partition):
         self._set_disk_number(partition)
         self._set_partition_number(partition)
         self._set_number_of_blocks(partition)
-        self._set_primary_partition(partition)
+        self['Primary'] = self._get_primary_partition()
         self._set_size(partition)
         self._set_starting_offset(partition)
         self._set_type(partition)
@@ -186,12 +188,13 @@ class WindowsPartition(Partition):
         except ValueError:
             self['Blocks'] = -1
 
-    def _set_primary_partition(self, partition: 'wmi._wmi_object') -> None:
+    def _get_primary_partition(self) -> None:
         """Set if the partition is a primary partition"""
         try:
-            self['Primary'] = int(partition.PrimaryPartition)
+            primary = bool(self._wmi_partition.PrimaryPartition)
         except AttributeError:
-            self['Primary'] = False
+            primary = False
+        return primary
 
     def _set_size(self, partition: 'wmi._wmi_object') -> None:
         """Set partition size in bytes."""
