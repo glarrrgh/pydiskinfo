@@ -1,3 +1,12 @@
+from unittest import TestCase
+from src.pydiskinfo.human_readable_units import human_readable_units
+
+
+class TestHumanReadableUnits(TestCase):
+    def test_auto_1000_to_1KB(self) -> None:
+        self.assertEqual(human_readable_units(999), '999B')
+        self.assertEqual(human_readable_units(1000), '1.00KB')
+
 # import pytest
 # from human_readable_units import (
 #     human_readable_units,

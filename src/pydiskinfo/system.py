@@ -94,7 +94,7 @@ class System(dict):
         
     def _parse_system(self) -> None:
         """If the system is of unknown type, nothing is parsed."""
-        pass
+        ...
 
     def __str__(self) -> str:
         system = 'System: ' + ", ".join((f'Name: {self["Name"]}', 

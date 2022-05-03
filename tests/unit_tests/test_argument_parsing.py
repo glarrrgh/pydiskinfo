@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch
-
+from src.pydiskinfo.system import System
+from tests.fake_wmi import FakeWMIcursor
 from src.pydiskinfo.argument_parsing import get_arguments, SanitizedArguments
 
 
@@ -13,7 +14,7 @@ class TestGetArguments(TestCase):
         self.assertIsInstance(sanitized_arguments, SanitizedArguments)
         self.assertFalse(sanitized_arguments.logical_disk_orientation)
         self.assertEqual(
-            sanitized_arguments.physical_disk_options, 
+            sanitized_arguments.physical_disk_options,
             ['Disk Number', 'Path', 'Media', 'Serial', 'Size']
         )
         self.assertEqual(
@@ -29,7 +30,7 @@ class TestGetArguments(TestCase):
         self.assertTrue(sanitized_arguments.physical_disk_size_human_readable)
         self.assertTrue(sanitized_arguments.partition_size_human_readable)
         self.assertFalse(sanitized_arguments.logical_disk_size_human_readable)
-        
+
     @patch('sys.argv', [
         'pydiskinfo',
         '-dp',
@@ -48,7 +49,7 @@ class TestGetArguments(TestCase):
         self.assertIsInstance(sanitized_arguments, SanitizedArguments)
         self.assertTrue(sanitized_arguments.logical_disk_orientation)
         self.assertEqual(
-            sanitized_arguments.physical_disk_options, 
+            sanitized_arguments.physical_disk_options,
             [
                 'Size',
                 'Disk Number',
@@ -323,3 +324,60 @@ class TestSanitizedArgumentsClass(TestCase):
         system_name and set it correctly ''"""
         sanitized_arguments = SanitizedArguments({'n': 'Some system'})
         self.assertEqual(sanitized_arguments.system_name, 'Some system')
+
+    def test_argument_properties_against_WindowsPhysicalDisk(self) -> None:
+        """Test that arguments give the same keys as PhysicalDisk"""
+        with patch(
+            'wmi.WMI',
+            FakeWMIcursor
+        ), patch(
+            'sys.platform',
+            'win32'
+        ):
+            system = System()
+        sanitized_arguments = SanitizedArguments({'dp': 'sidptnmcbhCfIMa'})
+        self.assertEqual(
+            sorted(
+                sanitized_arguments.physical_disk_options
+                + ['Partitions', 'System']
+            ),
+            sorted(system['Physical Disks'][0].keys())
+        )
+
+    def test_argument_properties_against_WindowsPartition(self) -> None:
+        """Test that arguments give the same keys as Partition"""
+        with patch(
+            'wmi.WMI',
+            FakeWMIcursor
+        ), patch(
+            'sys.platform',
+            'win32'
+        ):
+            system = System()
+        sanitized_arguments = SanitizedArguments({'pp': 'bBoxpdiNcrset'})
+        self.assertEqual(
+            sorted(
+                sanitized_arguments.partition_options
+                + ['Logical Disks', 'Physical Disk']
+            ),
+            sorted(system['Partitions'][0].keys())
+        )
+
+    def test_argument_properties_against_WindowsLogicalDisk(self) -> None:
+        """Test that arguments give the same keys as LogicalDisk"""
+        with patch(
+            'wmi.WMI',
+            FakeWMIcursor
+        ), patch(
+            'sys.platform',
+            'win32'
+        ):
+            system = System()
+        sanitized_arguments = SanitizedArguments({'lp': 'xdtfFUvMpsVn'})
+        self.assertEqual(
+            sorted(
+                sanitized_arguments.logical_disk_options
+                + ['System', 'Partitions']
+            ),
+            sorted(system['Logical Disks'][0].keys())
+        )

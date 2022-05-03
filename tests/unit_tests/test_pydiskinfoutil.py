@@ -1,13 +1,17 @@
 from unittest import TestCase
 import subprocess
-import platform
 import os
 from contextlib import redirect_stdout, redirect_stderr
 from io import StringIO
 from unittest.mock import patch
 from src.pydiskinfo.argument_parsing import get_arguments
 from src.pydiskinfo import pdi_util
-from src.pydiskinfo.argument_parsing import get_arguments
+from tests.fake_wmi import (
+    FakeWMIcursor,
+    FakeWMIPhysicalDisk,
+    FakeWMIPartition,
+    FakeWMILogicalDisk
+)
 
 
 class PackageTests(TestCase):
@@ -20,13 +24,10 @@ class PackageTests(TestCase):
             )
 
 
-"""
-windows mock methods
-"""
-
-
 def get_system_dict(name: str = 'ignored') -> dict:
+    """Returns a fake System object"""
     class DictClassWrapper(dict):
+        """Allows for adding properties dynamically"""
         def __init__(self, input_dict: dict) -> None:
             super().__init__(input_dict)
     system = DictClassWrapper({
@@ -99,26 +100,31 @@ def get_system_dict(name: str = 'ignored') -> dict:
 
 
 class OutputTests(TestCase):
+    """Testing the command line input (arguments) and output"""
     def test_default_output_on_windows(self) -> None:
         self.maxDiff = None
         with patch(
-                'sys.argv',
-                ['pydiskinfo']
-            ), patch(
-                'src.pydiskinfo.pdi_util.System',
-                get_system_dict
-            ), redirect_stdout(
-                StringIO()
-            ) as output_stream, redirect_stderr(
-                StringIO()
-            ) as stderr_stream:
+            'sys.argv',
+            ['pydiskinfo']
+        ), patch(
+            'src.pydiskinfo.pdi_util.System',
+            get_system_dict
+        ), redirect_stdout(
+            StringIO()
+        ) as output_stream, redirect_stderr(
+            StringIO()
+        ) as stderr_stream:
             pdi_util.main()
         self.assertEqual(stderr_stream.getvalue(), '')
-        self.assertEqual(output_stream.getvalue(),
-'''System -- Name: Some system, Type: Some type, Version: 10
-  Physical Disk -- Disk Number: 0, Path: Some path, Media: Some media type, Serial: Some serial, Size: 256.05GB
-    Partition -- Device I.D.: Some device id, Type: Some type, Size: 104.86MB, Offset: 1048576
-      Logical Disk -- Path: Some path, Label: Some label, Filesystem: Some filesystem, Free Space: 800.00MB\n'''
+        self.assertEqual(
+            output_stream.getvalue(),
+            'System -- Name: Some system, Type: Some type, Version: 10\n'
+            '  Physical Disk -- Disk Number: 0, Path: Some path, Media: Some'
+            ' media type, Serial: Some serial, Size: 256.05GB\n'
+            '    Partition -- Device I.D.: Some device id, Type: Some type,'
+            ' Size: 104.86MB, Offset: 1048576\n'
+            '      Logical Disk -- Path: Some path, Label: Some label,'
+            ' Filesystem: Some filesystem, Free Space: 800.00MB\n'
         )
 
     def test_help_output_on_windows(self) -> None:
@@ -135,10 +141,69 @@ class OutputTests(TestCase):
             raise AssertionError(f'{str(callerr)}\n########\n{callerr.stderr}')
         except subprocess.SubprocessError as suberr:
             raise AssertionError(str(suberr))
-        self.assertRegex(output,
-r'''.*The default behaviour is to list all devices from the system down through
-physical disk and partitions, to logical disks\. The partitions are only
-"physical" partitions.*''')
+        self.assertRegex(
+            output,
+            r'The default behaviour is to list all devices from the system'
+            r' down through\nphysical disk and partitions, to logical disks\.'
+            r' The partitions are only\n"physical" partitions'
+        )
+
+    def test_indentations(self) -> None:
+        """Test that indentations are correctly expanding with items"""
+        def get_fake_wmi() -> FakeWMIcursor:
+            fake_disks = [
+                FakeWMIPhysicalDisk([
+                    FakeWMIPartition([
+                        FakeWMILogicalDisk(),
+                        FakeWMILogicalDisk()
+                    ]),
+                    FakeWMIPartition([]),
+                    FakeWMIPartition()
+                ]),
+                FakeWMIPhysicalDisk([]),
+                FakeWMIPhysicalDisk([
+                    FakeWMIPartition(),
+                    FakeWMIPartition()
+                ])
+            ]
+            return FakeWMIcursor(fake_disks)
+        with patch(
+            'wmi.WMI',
+            new=get_fake_wmi
+        ), patch(
+            'sys.platform',
+            'win32'
+        ), redirect_stdout(
+            StringIO()
+        ) as output_stream, redirect_stderr(
+            StringIO()
+        ) as stderr_stream, patch(
+            'sys.argv',
+            ['pydiskinfo', '-dp', 'Pi', '-pp', 'Ldi']
+        ):
+            pdi_util.main()
+        if stderr_stream.getvalue():
+            raise AssertionError(
+                'pdi_util.main() wrote to stderr:\n'
+                f'{stderr_stream.getvalue()}'
+            )
+        self.assertRegex(
+            output_stream.getvalue(),
+            r'^System -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Logical Disk -- [\S ]+?\n'
+            r'      Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Logical Disk -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Logical Disk -- [\S ]+?\n$'
+        )
 
 
 class StringFunctions(TestCase):

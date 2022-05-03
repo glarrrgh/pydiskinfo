@@ -41,7 +41,7 @@ class Partition(dict):
         self['Logical Disks'] = []
         self['Blocksize'] = -1
         self['Bootable'] = False
-        self['Boot Partition'] = False
+        self['Active'] = False
         self['Description'] = ""
         self['Path'] = ""
         self['Device I.D.'] = ""
@@ -113,7 +113,7 @@ class WindowsPartition(Partition):
         self._wmi_partition = partition
         self._set_blocksize(partition)
         self._set_bootable(partition)
-        self._set_boot_partition(partition)
+        self._set_active(partition)
         self._set_description(partition)
         self._set_device_id(partition)
         self._set_disk_number(partition)
@@ -127,11 +127,11 @@ class WindowsPartition(Partition):
     def _set_blocksize(self, partition: 'wmi._wmi_object') -> None:
         """Set blocksize or -1 if it fails."""
         try:
-            self['BlockSize'] = int(partition.BlockSize)
+            self['Blocksize'] = int(partition.BlockSize)
         except AttributeError:
-            self['BlockSize'] = -1
+            self['Blocksize'] = -1
         except ValueError:
-            self['BlockSize'] = -1
+            self['Blocksize'] = -1
 
     def _set_bootable(self, partition: 'wmi._wmi_object') -> None:
         """Set bootable or false if it fails."""
@@ -140,12 +140,12 @@ class WindowsPartition(Partition):
         except AttributeError:
             self['Bootable'] = False
 
-    def _set_boot_partition(self, partition: 'wmi._wmi_object') -> None:
+    def _set_active(self, partition: 'wmi._wmi_object') -> None:
         """Set if system boot partition, or False if it fails."""
         try:
-            self['Boot Partition'] = partition.BootPartition
+            self['Active'] = partition.BootPartition
         except AttributeError:
-            self['Boot Partition'] = False
+            self['Active'] = False
 
     def _set_description(self, partition: 'wmi._wmi_object') -> None:
         """set a description provided by the system."""
@@ -220,5 +220,3 @@ class WindowsPartition(Partition):
             self['Type'] = partition.Type
         except AttributeError:
             self['Type'] = ""
-
-

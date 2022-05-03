@@ -98,7 +98,7 @@ class SanitizedArguments:
                 self._add_to_list(return_list, 'Media Loaded')
             elif each_option == 'a':
                 self._add_to_list(return_list, 'Status')
-            
+
         return return_list, list_partitions, size_human_readable
 
     def _parse_pp(self, arguments: str) -> tuple:
