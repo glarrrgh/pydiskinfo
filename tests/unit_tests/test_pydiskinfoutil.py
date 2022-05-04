@@ -101,6 +101,7 @@ def get_system_dict(name: str = 'ignored') -> dict:
 
 class OutputTests(TestCase):
     """Testing the command line input (arguments) and output"""
+
     def test_default_output_on_windows(self) -> None:
         self.maxDiff = None
         with patch(
@@ -150,45 +151,45 @@ class OutputTests(TestCase):
 
     def test_indentations(self) -> None:
         """Test that indentations are correctly expanding with items"""
-        def get_fake_wmi() -> FakeWMIcursor:
-            fake_disks = [
-                FakeWMIPhysicalDisk([
-                    FakeWMIPartition([
-                        FakeWMILogicalDisk(),
-                        FakeWMILogicalDisk()
-                    ]),
-                    FakeWMIPartition([]),
-                    FakeWMIPartition()
-                ]),
-                FakeWMIPhysicalDisk([]),
-                FakeWMIPhysicalDisk([
-                    FakeWMIPartition(),
-                    FakeWMIPartition()
-                ])
-            ]
-            return FakeWMIcursor(fake_disks)
-        with patch(
-            'wmi.WMI',
-            new=get_fake_wmi
-        ), patch(
-            'sys.platform',
-            'win32'
-        ), redirect_stdout(
-            StringIO()
-        ) as output_stream, redirect_stderr(
-            StringIO()
-        ) as stderr_stream, patch(
-            'sys.argv',
-            ['pydiskinfo', '-dp', 'Pi', '-pp', 'Ldi']
-        ):
-            pdi_util.main()
-        if stderr_stream.getvalue():
-            raise AssertionError(
-                'pdi_util.main() wrote to stderr:\n'
-                f'{stderr_stream.getvalue()}'
-            )
+        def get_output(arguments: list = None) -> str:
+            with patch(
+                'sys.platform',
+                'win32'
+            ), patch(
+                'wmi.WMI',
+                new=lambda: FakeWMIcursor(
+                    [
+                        FakeWMIPhysicalDisk([
+                            FakeWMIPartition([
+                                FakeWMILogicalDisk(),
+                                FakeWMILogicalDisk()
+                            ]),
+                            FakeWMIPartition([]),
+                            FakeWMIPartition()
+                        ]),
+                        FakeWMIPhysicalDisk([]),
+                        FakeWMIPhysicalDisk([
+                            FakeWMIPartition(),
+                            FakeWMIPartition()
+                        ])
+                    ])
+            ), redirect_stdout(
+                StringIO()
+            ) as output_stream, redirect_stderr(
+                StringIO()
+            ) as stderr_stream, patch(
+                'sys.argv',
+                ['pydiskinfo'] + arguments
+            ):
+                pdi_util.main()
+            if stderr_stream.getvalue():
+                raise AssertionError(
+                    'pdi_util.main() wrote to stderr:\n'
+                    f'{stderr_stream.getvalue()}'
+                )
+            return output_stream.getvalue()
         self.assertRegex(
-            output_stream.getvalue(),
+            get_output(['-dp', 'Pi', '-pp', 'Ldi']),
             r'^System -- [\S ]+?\n'
             r'  Physical Disk -- [\S ]+?\n'
             r'    Partition -- [\S ]+?\n'
@@ -203,6 +204,73 @@ class OutputTests(TestCase):
             r'      Logical Disk -- [\S ]+?\n'
             r'    Partition -- [\S ]+?\n'
             r'      Logical Disk -- [\S ]+?\n$'
+        )
+        self.assertRegex(
+            get_output(['-dp', 'Pi', '-pp', 'LDdi', '-l']),
+            r'^System -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Physical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Physical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Physical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Physical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'    Partition -- [\S ]+?\n'
+            r'      Physical Disk -- [\S ]+?\n$'
+        )
+        self.assertRegex(
+            get_output(['-dp', 'Pi', '-pp', 'LDdi', '-p']),
+            r'^System -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'    Logical Disk -- [\S ]+?\n'
+            r'    Logical Disk -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'    Logical Disk -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'    Logical Disk -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'    Logical Disk -- [\S ]+?\n$'
+        )
+        self.assertRegex(
+            get_output(['-dp', 'i', '-pp', 'di', '-p']),
+            r'^System -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n$'
+        )
+        self.assertRegex(
+            get_output(['-dp', 'i', '-pp', 'di', '-lp', 'V', '-p', '-l']),
+            r'^System -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n'
+            r'  Partition -- [\S ]+?\n$'
+        )
+        self.assertRegex(
+            get_output(['-dp', 'i']),
+            r'^System -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n'
+            r'  Physical Disk -- [\S ]+?\n$'
+        )
+        self.assertRegex(
+            get_output(['-lp', 'V', '-l']),
+            r'^System -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n'
+            r'  Logical Disk -- [\S ]+?\n$'
         )
 
 

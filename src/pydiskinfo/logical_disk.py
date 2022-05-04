@@ -23,10 +23,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 from . human_readable_units import human_readable_units
+from abc import ABC
 
 
 class LogicalDisk(dict):
-    """Class for logical disks/mount points"""    
+    """Class for logical disks/mount points"""
 
     def __init__(self, system: 'System') -> None:
         self['System'] = system
@@ -47,13 +48,14 @@ class LogicalDisk(dict):
     def add_partition(self, partition: 'Partition') -> None:
         """Add a partition to this logical disk"""
         self['Partitions'].append(partition)
-    
+
     def __str__(self) -> str:
-        return "Logical Disk -- " + ", ".join(("Path: " + self['Path'], 
-                                             'Label: ' + self['Label'],
-                                             'Filesystem: ' + self['Filesystem'],
-                                             'Free Space: ' + human_readable_units(self['Free Space'])
-                                           ))
+        return "Logical Disk -- " + ", ".join((
+            "Path: " + self['Path'],
+            'Label: ' + self['Label'],
+            'Filesystem: ' + self['Filesystem'],
+            'Free Space: ' + human_readable_units(self['Free Space'])
+        ))
 
 
 class LinuxLogicalDisk(LogicalDisk):
@@ -75,17 +77,23 @@ class LinuxLogicalDisk(LogicalDisk):
         self['Device I.D.'] = path
         self['Name'] = path
 
-class WindowsLogicalDisk(LogicalDisk):
-    _DRIVETYPES = [ 'Unknown', 
-                    'No Root Directory', 
-                    'Removable Disk', 
-                    'Local Disk', 
-                    'Network Drive', 
-                    'Compact Disk',
-                    'RAM Disk'
-                    ]
 
-    def __init__(self, logical_disk: 'wmi._wmi_object', system: 'System') -> None:
+class WindowsLogicalDisk(LogicalDisk):
+    _DRIVETYPES = [
+        'Unknown',
+        'No Root Directory',
+        'Removable Disk',
+        'Local Disk',
+        'Network Drive',
+        'Compact Disk',
+        'RAM Disk'
+    ]
+
+    def __init__(
+        self,
+        logical_disk: 'wmi._wmi_object',
+        system: 'System'
+    ) -> None:
         super().__init__(system)
         self._wmi_logical_disk = logical_disk
         self._set_description(logical_disk)
@@ -110,7 +118,9 @@ class WindowsLogicalDisk(LogicalDisk):
             self['Description'] = ""
 
     def _get_device_id_name_mounted(self) -> None:
-        """Set the unique device ID and name. On windows this is pretty much the same as path."""
+        """Set the unique device ID and name. On windows
+        this is pretty much the same as path.
+        """
         try:
             device_id = self._wmi_logical_disk.DeviceID
             if not type(device_id) == str:
@@ -154,10 +164,15 @@ class WindowsLogicalDisk(LogicalDisk):
         except TypeError:
             self['Free Space'] = 0
 
-    def _set_maximum_component_length(self, logical_disk: 'wmi._wmi_object') -> None:
+    def _set_maximum_component_length(
+        self,
+        logical_disk: 'wmi._wmi_object'
+    ) -> None:
         """Set the max path length in characters."""
         try:
-            self['Max Component Length'] = int(logical_disk.MaximumComponentLength)
+            self['Max Component Length'] = int(
+                logical_disk.MaximumComponentLength
+            )
         except AttributeError:
             self['Max Component Length'] = 0
         except ValueError:
@@ -185,7 +200,10 @@ class WindowsLogicalDisk(LogicalDisk):
         except AttributeError:
             self['Label'] = ""
 
-    def _set_volume_serial_number(self, logical_disk: 'wmi._wmi_object') -> None:
+    def _set_volume_serial_number(
+        self,
+        logical_disk: 'wmi._wmi_object'
+    ) -> None:
         """Set the volume serial number."""
         try:
             self['Serial'] = logical_disk.VolumeSerialNumber
@@ -193,5 +211,3 @@ class WindowsLogicalDisk(LogicalDisk):
                 self['Serial'] = ""
         except AttributeError:
             self['Serial'] = ""
-
-

@@ -1,4 +1,3 @@
-from distutils.log import Log
 from unittest import TestCase
 from src.pydiskinfo.logical_disk import LogicalDisk, WindowsLogicalDisk
 

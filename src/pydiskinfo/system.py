@@ -149,11 +149,16 @@ class LinuxSystem(System):
         try:
             with open('/proc/partitions', 'r') as proc_partitions:
                 for each_line in proc_partitions:
-                    match = re.match(r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*', each_line)
+                    match = re.match(
+                        r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*',
+                        each_line
+                    )
                     if match:
                         block_devices.append(match.group(1, 2, 3, 4))
         except FileNotFoundError as err:
-            raise PyDiskInfoParseError('Missing /proc/partitions. Giving up parsing.') from err
+            raise PyDiskInfoParseError(
+                'Missing /proc/partitions. Giving up parsing.'
+            ) from err
         for each_device in block_devices:
             # handeling scsi hard drives
             if each_device[0] in ('8'):
@@ -171,14 +176,14 @@ class LinuxSystem(System):
             elif each_device[0] == '9':
                 # read from /proc/mdstat
                 self['Physical Disks'].append(
-                        LinuxPhysicalDisk(
-                            self, 
-                            int(each_device[0]),
-                            int(each_device[1]),
-                            int(each_device[2]),
-                            each_device[3]
-                        )
+                    LinuxPhysicalDisk(
+                        self,
+                        int(each_device[0]),
+                        int(each_device[1]),
+                        int(each_device[2]),
+                        each_device[3]
                     )
+                )
         for each_device in block_devices:
             if int(each_device[1]) > 0:
                 disk = None
@@ -186,38 +191,44 @@ class LinuxSystem(System):
                     if str(each_disk['Major Number']) == each_device[0]:
                         disk = each_disk
                         break
-                partition = LinuxPartition(disk, 
-                                           int(each_device[0]), 
-                                           int(each_device[1]),
-                                           int(each_device[2]),
-                                           each_device[3]
-                                           )
+                partition = LinuxPartition(
+                    disk,
+                    int(each_device[0]),
+                    int(each_device[1]),
+                    int(each_device[2]),
+                    each_device[3]
+                )
                 disk.add_partition(partition)
                 self['Partitions'].append(partition)
         logical_disks = []
         try:
-            mounts = subprocess.run((
-                                        'df', 
-                                        '--output=source,fstype,size,avail,target', 
-                                        '--local',
-                                        '--block-size=1'
-                                    ),
-                                    capture_output=True, 
-                                    text=True
-                                )
+            mounts = subprocess.run(
+                (
+                    'df',
+                    '--output=source,fstype,size,avail,target',
+                    '--local',
+                    '--block-size=1'
+                ),
+                capture_output=True,
+                text=True
+            )
             for each_line in mounts.stdout.split('\n'):
-                match = re.search(r'(.*\w)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\/.*)', each_line)
+                match = re.search(
+                    r'(.*\w)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\/.*)',
+                    each_line
+                )
                 if match:
                     logical_disks.append(match.groups())
         except OSError as err:
             raise PyDiskInfoParseError('Cant find the "df" command.') from err
         for each_logical_disk in logical_disks:
-            logical_disk = LinuxLogicalDisk(self, 
-                                            each_logical_disk[4], 
-                                            each_logical_disk[1], 
-                                            int(each_logical_disk[2]),
-                                            int(each_logical_disk[3])
-                                            )
+            logical_disk = LinuxLogicalDisk(
+                self,
+                each_logical_disk[4],
+                each_logical_disk[1],
+                int(each_logical_disk[2]),
+                int(each_logical_disk[3])
+            )
             for each_partition in self['Partitions']:
                 if each_partition['Path'] == each_logical_disk[0]:
                     checked_logical_disk = self._add_logical_disk(logical_disk)
@@ -226,7 +237,10 @@ class LinuxSystem(System):
             for each_disk in self['Physical Disks']:
                 if each_disk['Path'] == each_logical_disk[0]:
                     checked_logical_disk = self._add_logical_disk(logical_disk)
-                    dummy_partition = DummyPartition(each_disk, checked_logical_disk)
+                    dummy_partition = DummyPartition(
+                        each_disk,
+                        checked_logical_disk
+                    )
                     self['Partitions'].append(dummy_partition)
                     each_disk.add_partition(dummy_partition)
                     checked_logical_disk.add_partition(dummy_partition)

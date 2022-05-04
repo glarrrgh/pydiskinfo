@@ -201,7 +201,3 @@ def main() -> None:
                             )
                             print(f'{" "*indent}{logical_disk_string}')
                     indent -= 2
-
-
-if __name__ == '__main__':
-    main()
