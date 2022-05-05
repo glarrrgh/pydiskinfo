@@ -59,13 +59,14 @@ class LogicalDisk(dict):
 
 
 class LinuxLogicalDisk(LogicalDisk):
-    def __init__(self, 
-                 system: object, 
-                 path: str, 
-                 file_system: str, 
-                 size: int, 
-                 free_space: int
-            ) -> None:
+    def __init__(
+        self,
+        system: object,
+        path: str,
+        file_system: str,
+        size: int,
+        free_space: int
+    ) -> None:
         super().__init__(system)
         self._set_path_device_id_and_name(path)
         self['Filesystem'] = file_system

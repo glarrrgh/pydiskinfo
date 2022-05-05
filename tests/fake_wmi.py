@@ -1,13 +1,33 @@
+from unittest.mock import patch
+from src.pydiskinfo.system import System, create_system
+
+
+def get_windows_system() -> System:
+    with patch(
+        target='wmi.WMI',
+        new=FakeWMIcursor
+    ), patch(
+        target='sys.platform',
+        new='win32'
+    ), patch(
+        target='socket.gethostname',
+    ) as fake_gethostname, patch(
+        target='src.pydiskinfo.system.platform'
+    ) as fake_platform:
+        fake_platform.win32_edition.return_value = 'test'
+        fake_platform.win32_ver.return_value = ['notused', '10']
+        fake_platform.system.return_value = 'Some type'
+        fake_gethostname.return_value = 'Some system'
+        return create_system()
 
 
 class FakeWMILogicalDisk:
     device_id_number = 0
-
     def __init__(self) -> None:
         self.Description = 'Some description'
-        self.DeviceID = f'device {FakeWMILogicalDisk.device_id_number}'
+        self.DeviceID = f'device{FakeWMILogicalDisk.device_id_number}'
         FakeWMILogicalDisk.device_id_number += 1
-        self.DriveType = 'Some type'
+        self.DriveType = '0'
         self.FileSystem = 'Some filesystem'
         self.FreeSpace = '800000000'
         self.MaximumComponentLength = '255'

@@ -29,8 +29,8 @@ class PhysicalDisk(dict):
     """Contains information about physical drives."""
 
     def __init__(self, system: 'System') -> None:
-        self['System'] = system
-        self['Partitions'] = []
+        self._system = system
+        self._partitions = []
         self['Size'] = 0
         self['Disk Number'] = -1
         self['Device I.D.'] = ""
@@ -49,19 +49,26 @@ class PhysicalDisk(dict):
 
     def add_partition(self, partition: 'Partition') -> None:
         """add a Partition object to the disk."""
-        self['Partitions'].append(partition)
+        self._partitions.append(partition)
+
+    def get_partitions(self) -> tuple:
+        return tuple(self._partitions)
+    
+    def get_system(self) -> 'System':
+        return self._system
 
     def __str__(self) -> str:
         """Overloading the string method"""
-        disk = 'Disk -- ' + ", ".join(("Disk Number: {}".format(self['Disk Number']), 
-                                       "Path: " + self['Path'], 
-                                       "Media: " + self['Media'], 
-                                       "Size: " + human_readable_units(self['Size'])
-                                       ))
+        disk = 'Disk -- ' + ", ".join((
+            "Disk Number: {}".format(self['Disk Number']),
+            "Path: " + self['Path'],
+            "Media: " + self['Media'],
+            "Size: " + human_readable_units(self['Size'])
+        ))
         partitions = ["\n".join(
-                        ["  " + line for line in str(partition).split("\n")]) 
-                      for partition in self['Partitions']]
-        return "\n".join( (disk, *partitions, "" ) )
+                        ["  " + line for line in str(partition).split("\n")])
+                      for partition in self.get_partitions()]
+        return "\n".join((disk, *partitions, ""))
 
 class LinuxPhysicalDisk(PhysicalDisk):
     def __init__(self, 
@@ -182,7 +189,10 @@ class WindowsPhysicalDisk(PhysicalDisk):
         except AttributeError:
             self['Firmware'] = "Unspecified"
 
-    def _set_interface_type(self, wmi_physical_disk: 'wmi._wmi_object') -> None:
+    def _set_interface_type(
+        self,
+        wmi_physical_disk: 'wmi._wmi_object'
+    ) -> None:
         try:
             self['Interface'] = wmi_physical_disk.InterfaceType
         except AttributeError:
@@ -199,5 +209,3 @@ class WindowsPhysicalDisk(PhysicalDisk):
             self['Status'] = wmi_physical_disk.Status
         except AttributeError:
             self['Status'] = ""
-
-

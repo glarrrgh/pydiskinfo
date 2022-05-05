@@ -44,5 +44,9 @@ class PyDiskInfoParseError(Exception):
     this information. But if this is raised, it is usually because of access
     rights."""
 
-    def __init__(self, message, error):
+    def __init__(
+        self,
+        message: str = 'PydiskInfoParseError...',
+        error: Exception = None
+    ):
         super().__init__(message, error)

@@ -37,8 +37,8 @@ class Partition(dict):
     """
 
     def __init__(self, physical_disk: 'PhysicalDisk') -> None:
-        self['Physical Disk'] = physical_disk
-        self['Logical Disks'] = []
+        self._physical_disk = physical_disk
+        self._logical_disks = []
         self['Blocksize'] = -1
         self['Bootable'] = False
         self['Active'] = False
@@ -57,11 +57,17 @@ class Partition(dict):
     def add_logical_disk(self, logical_disk: 'LogicalDisk') -> None:
         """Set the logical disk connected to this partition."""
         new_logical_disk = True
-        for each_logical_disk in self['Logical Disks']:
+        for each_logical_disk in self.get_logical_disks():
             if each_logical_disk['Device I.D.'] == logical_disk['Device I.D.']:
                 new_logical_disk = False
         if new_logical_disk:
-            self['Logical Disks'].append(logical_disk)
+            self._logical_disks.append(logical_disk)
+
+    def get_logical_disks(self) -> tuple:
+        return tuple(self._logical_disks)
+
+    def get_physical_disk(self) -> 'PhysicalDisk':
+        return self._physical_disk
 
     def __str__(self) -> str:
         """overloading the __str__ method"""
@@ -70,8 +76,9 @@ class Partition(dict):
                                                'Size: ' + human_readable_units(self['Size']), 
                                                'Offset: '+ str(self['Offset'])
                                                ))
-        logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self['Logical Disks']] 
+        logical_disks = ["\n".join(["  " + line for line in str(logical_disk).split("\n")]) for logical_disk in self.get_logical_disks()] 
         return "\n".join((partition, *logical_disks))
+
 
 class DummyPartition(Partition):
     def __init__(self, disk: 'PhysicalDisk', logical_disk: 'LogicalDisk'):
@@ -80,7 +87,7 @@ class DummyPartition(Partition):
         self.add_logical_disk(logical_disk)
 
     def __str__(self) -> str:
-        return str(self['Logical Disks'][0])
+        return str(self.get_logical_disks()[0])
 
 
 class LinuxPartition(Partition):

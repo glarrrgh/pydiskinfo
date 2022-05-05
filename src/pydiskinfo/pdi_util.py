@@ -22,7 +22,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 from . argument_parsing import get_arguments, SanitizedArguments
-from .system import System
+from .system import System, create_system
 from . human_readable_units import human_readable_units
 from .physical_disk import PhysicalDisk
 from .logical_disk import LogicalDisk
@@ -112,12 +112,12 @@ def str_logical_disk(
 def main() -> None:
     arguments = get_arguments()
     if arguments:
-        system = System(arguments.system_name)
+        system = create_system(arguments.system_name)
         print(str_system(system))
         if arguments.logical_disk_orientation:
             indent = 2
             if not arguments.list_from_partitions:
-                for each_logical_disk in system['Logical Disks']:
+                for each_logical_disk in system.get_logical_disks():
                     logical_disk_string = str_logical_disk(
                         each_logical_disk,
                         arguments
@@ -136,7 +136,7 @@ def main() -> None:
                                 indent += 2
                             if arguments.partition_show_physical_disk:
                                 physical_disk_string = str_physical_disk(
-                                    each_partition["Physical Disk"],
+                                    each_partition.get_physical_disk(),
                                     arguments
                                 )
                                 print(
@@ -145,7 +145,7 @@ def main() -> None:
                             indent -= 2
                     indent -= 2
             else:
-                for each_partition in system['Partitions']:
+                for each_partition in system.get_partitions():
                     print(
                         f'{" "*indent}'
                         f'{str_partition(each_partition, arguments)}'
@@ -153,7 +153,7 @@ def main() -> None:
                     indent += 2
                     if arguments.partition_show_physical_disk:
                         physical_disk_string = str_physical_disk(
-                            each_partition["Physical Disk"],
+                            each_partition.get_physical_disk(),
                             arguments
                         )
                         print(
@@ -163,7 +163,7 @@ def main() -> None:
         else:
             indent = 2
             if not arguments.list_from_partitions:
-                for each_physical_disk in system['Physical Disks']:
+                for each_physical_disk in system.get_physical_disks():
                     physical_disk_string = str_physical_disk(
                         each_physical_disk,
                         arguments
@@ -171,7 +171,10 @@ def main() -> None:
                     print(f'{" "*indent}{physical_disk_string}')
                     indent += 2
                     if arguments.physical_disk_list_partitions:
-                        for each_partition in each_physical_disk["Partitions"]:
+                        for each_partition in (
+                            each_physical_disk
+                            .get_partitions()
+                        ):
                             if not each_partition.isdummy:
                                 partition_string = str_partition(
                                     each_partition,
@@ -181,7 +184,7 @@ def main() -> None:
                                 indent += 2
                             if arguments.partition_list_logical_disks:
                                 for each_logical_disk in \
-                                        each_partition["Logical Disks"]:
+                                        each_partition.get_logical_disks():
                                     logical_disk_string = str_logical_disk(
                                         each_logical_disk,
                                         arguments
@@ -190,11 +193,11 @@ def main() -> None:
                             indent -= 2
                     indent -= 2
             else:
-                for each_partition in system['Partitions']:
+                for each_partition in system.get_partitions():
                     print(f'{" "*indent}{str_partition(each_partition, arguments)}')
                     indent += 2
                     if arguments.partition_list_logical_disks:
-                        for each_logical_disk in each_partition['Logical Disks']:
+                        for each_logical_disk in each_partition.get_logical_disks():
                             logical_disk_string = str_logical_disk(
                                 each_logical_disk,
                                 arguments

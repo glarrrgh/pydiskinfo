@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch
-from src.pydiskinfo.system import System
+from src.pydiskinfo.system import System, create_system
 from tests.fake_wmi import FakeWMIcursor
 from src.pydiskinfo.argument_parsing import get_arguments, SanitizedArguments
 
@@ -334,14 +334,11 @@ class TestSanitizedArgumentsClass(TestCase):
             'sys.platform',
             'win32'
         ):
-            system = System()
+            system = create_system()
         sanitized_arguments = SanitizedArguments({'dp': 'sidptnmcbhCfIMa'})
         self.assertEqual(
-            sorted(
-                sanitized_arguments.physical_disk_options
-                + ['Partitions', 'System']
-            ),
-            sorted(system['Physical Disks'][0].keys())
+            sorted(sanitized_arguments.physical_disk_options),
+            sorted(system.get_physical_disks()[0].keys())
         )
 
     def test_argument_properties_against_WindowsPartition(self) -> None:
@@ -353,14 +350,13 @@ class TestSanitizedArgumentsClass(TestCase):
             'sys.platform',
             'win32'
         ):
-            system = System()
+            system = create_system()
         sanitized_arguments = SanitizedArguments({'pp': 'bBoxpdiNcrset'})
         self.assertEqual(
             sorted(
                 sanitized_arguments.partition_options
-                + ['Logical Disks', 'Physical Disk']
             ),
-            sorted(system['Partitions'][0].keys())
+            sorted(system.get_partitions()[0].keys())
         )
 
     def test_argument_properties_against_WindowsLogicalDisk(self) -> None:
@@ -372,12 +368,12 @@ class TestSanitizedArgumentsClass(TestCase):
             'sys.platform',
             'win32'
         ):
-            system = System()
+            system = create_system()
         sanitized_arguments = SanitizedArguments({'lp': 'xdtfFUvMpsVn'})
         self.assertEqual(
             sorted(
                 sanitized_arguments.logical_disk_options
                 + ['System', 'Partitions']
             ),
-            sorted(system['Logical Disks'][0].keys())
+            sorted(system.get_logical_disks()[0].keys())
         )
