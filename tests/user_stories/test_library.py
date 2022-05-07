@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch
 from src.pydiskinfo.system import create_system, WindowsSystem
-from tests.fake_wmi import FakeWMIcursor
+from tests.fake_wmi import FakeWMIcursor, get_windows_system
 
 
 class PydiskinfoModuleTest(TestCase):
@@ -9,47 +9,17 @@ class PydiskinfoModuleTest(TestCase):
     def test_module_windows(self) -> None:
         '''User stories about the module "interface" on a windows system'''
         # Mary generates a System object on a windows system
-        with patch(
-            target='sys.platform',
-            new='win32'
-        ), patch(
-            target='wmi.WMI',
-            new=FakeWMIcursor
-        ), patch(
-            target='socket.gethostname',
-        ) as gethostname, patch(
-            target='src.pydiskinfo.system.platform'
-        ) as platform_mock:
-            gethostname.return_value = 'testsystem'
-            platform_mock.system.return_value = 'win32'
-            platform_mock.win32_edition.return_value = 'test'
-            platform_mock.win32_ver.return_value = [None, '0.1']
-            system = create_system()
+        system = get_windows_system()
         self.assertIsInstance(system, WindowsSystem)
 
         # Mary tries to access some parameters from the system
-        self.assertEqual(system['Name'], 'testsystem')
-        self.assertEqual(system['Type'], 'win32')
-        self.assertEqual(system['Version'], 'test 0.1')
+        self.assertEqual(system['Name'], 'Some system')
+        self.assertEqual(system['Type'], 'Some type')
+        self.assertEqual(system['Version'], 'test 10')
 
         # Mary creates a new system with a name, and checks if the name is
         # stored correctly
-        with patch(
-            target='sys.platform',
-            new='win32'
-        ), patch(
-            target='wmi.WMI',
-            new=FakeWMIcursor
-        ), patch(
-            target='socket.gethostname',
-        ) as gethostname, patch(
-            target='src.pydiskinfo.system.platform'
-        ) as platform_mock:
-            gethostname.return_value = 'testsystem'
-            platform_mock.system.return_value = 'win32'
-            platform_mock.win32_edition.return_value = 'test'
-            platform_mock.win32_ver.return_value = [None, '0.1']
-            system = create_system(name='Marys System')
+        system = get_windows_system(name='Marys System')
         self.assertEqual(system['Name'], 'Marys System')
 
         # Mary checks how many disks, partitions and logical disks there are

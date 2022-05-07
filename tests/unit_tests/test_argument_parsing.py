@@ -22,7 +22,7 @@ class TestGetArguments(TestCase):
         )
         self.assertEqual(
             sanitized_arguments.logical_disk_options,
-            ['Path', 'Label', 'Filesystem', 'Free Space']
+            ['Label', 'Filesystem', 'Free Space']
         )
         self.assertEqual(sanitized_arguments.system_name, '')
         self.assertFalse(sanitized_arguments.list_from_partitions)

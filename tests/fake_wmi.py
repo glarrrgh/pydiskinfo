@@ -116,16 +116,17 @@ class FakeWMIcursor:
         return self._physical_disks
 
 
-def get_windows_system(configuration: list = None) -> System:
+def get_windows_system(configuration: list = None, name: str = '') -> System:
     """return a fake System object for test purposes"""
-    with patch_windows(configuration=configuration):
+    with patch_windows(configuration=configuration, name=name):
         system = create_system()
     return system
 
 
 @contextmanager
 def patch_windows(
-    configuration: list = None
+    configuration: list = None,
+    name: str = ''
 ):
     def create_fake_cursor() -> FakeWMIcursor:
         return FakeWMIcursor(configuration)
@@ -144,19 +145,24 @@ def patch_windows(
         fake_platform.win32_edition.return_value = 'test'
         fake_platform.win32_ver.return_value = ['notused', '10']
         fake_platform.system.return_value = 'Some type'
-        fake_gethostname.return_value = 'Some system'
+        if name:
+            fake_gethostname.return_value = name
+        else:
+            fake_gethostname.return_value = 'Some system'
         yield
 
 
 def get_windows_output(
     arguments: list = None,
-    configuration: list = None
+    configuration: list = None,
+    name: str = ''
 ) -> str:
     """Return output from pydiskinfo given certain arguments"""
     if arguments is None:
         arguments = []
     with patch_windows(
-        configuration=configuration
+        configuration=configuration,
+        name=name
     ), patch(
         target='sys.argv',
         new=['pydiskinfo'] + arguments

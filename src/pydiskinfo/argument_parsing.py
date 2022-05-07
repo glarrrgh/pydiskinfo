@@ -255,7 +255,7 @@ Default: -pp LDdtse
 Logical disk properties:
 Combine the corresponding characters in a string after the -lp option. Order
 will be kept according to the string, except for the partition list.
-Default: -lp PpVfF
+Default: -lp PVfF
 
     P   List partitions that make up each logical disk. Ignored unless -l is
         specified.
@@ -293,7 +293,7 @@ Default: -lp PpVfF
     argument_parser.add_argument(
         '-lp',
         type=str,
-        default='PpVfF',
+        default='PVfF',
         help='Logical disk properties to include in output'
     )
     argument_parser.add_argument(

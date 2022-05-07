@@ -29,7 +29,7 @@ class OutputTests(TestCase):
             'Media: Some media type, Serial: Some serial, Size: 256.05GB\n'
             r'    Partition -- Device I.D.: Partition\d+ Disk\d+, '
             'Type: Some type, Size: 104.86MB, Offset: 1048576\n'
-            '      Logical Disk -- Path: , Label: Some label,'
+            '      Logical Disk -- Label: Some label,'
             ' Filesystem: Some filesystem, Free Space: 800.00MB\n'
         )
 
