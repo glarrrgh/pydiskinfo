@@ -66,7 +66,7 @@ class PydiskinfoModuleTest(TestCase):
             1
         )
 
-        # Mary then checks how many logical disks that are attatched to
+        # Mary then checks how many logical disks are attatched to
         # that partition
         partition = physical_disk.get_partitions()[0]
         self.assertEqual(
