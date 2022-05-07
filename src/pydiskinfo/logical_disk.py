@@ -23,11 +23,12 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 from . human_readable_units import human_readable_units
+from . system_component import SystemComponent
 from abc import ABC
 from typing import List, Tuple
 
 
-class LogicalDisk(dict):
+class LogicalDisk(SystemComponent):
     """Class for logical disks/mount points"""
 
     def __init__(self, system: 'System') -> None:

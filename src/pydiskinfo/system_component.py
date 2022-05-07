@@ -1,0 +1,2 @@
+class SystemComponent(dict):
+    pass

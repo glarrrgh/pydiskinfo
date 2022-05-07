@@ -27,9 +27,10 @@ from xmlrpc.client import boolean
 from typing import Tuple
 
 from . human_readable_units import human_readable_units
+from . system_component import SystemComponent
 
 
-class Partition(dict):
+class Partition(SystemComponent):
     """Contains information about partitions. This includes logical disk, 
     or 'volume' information. The same volume may span several disks, and the 
     filesystem of the partition, will in those cases be the filesystem of the 

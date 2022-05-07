@@ -34,6 +34,7 @@ except ModuleNotFoundError:
 from . human_readable_units import UNITS, human_readable_units
 from . partition import DummyPartition
 from . exceptions import PyDiskInfoParseError
+from . system_component import SystemComponent
 
 
 if sys.platform == 'win32':
@@ -52,7 +53,7 @@ elif sys.platform == 'linux':
     from . physical_disk import LinuxPhysicalDisk
 
 
-class System(dict):
+class System(SystemComponent):
     """'abstractish' class describing a system.
 
     When you create a System object, a subclass is chosen depending on the 

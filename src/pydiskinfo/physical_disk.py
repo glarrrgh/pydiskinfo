@@ -23,9 +23,10 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 from . human_readable_units import human_readable_units
+from . system_component import SystemComponent
 
 
-class PhysicalDisk(dict):
+class PhysicalDisk(SystemComponent):
     """Contains information about physical drives."""
 
     def __init__(self, system: 'System') -> None:

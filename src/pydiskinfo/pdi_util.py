@@ -27,6 +27,148 @@ from . human_readable_units import human_readable_units
 from .physical_disk import PhysicalDisk
 from .logical_disk import LogicalDisk
 from .partition import Partition
+from . system_component import SystemComponent
+
+
+class Stringifyer:
+    def __init__(self, arguments: SanitizedArguments = None) -> None:
+        self.arguments = arguments
+
+    def convert_int_to_str(
+        self,
+        value: int,
+        human_readable: bool = True
+    ) -> str:
+        """Return a string based on value. Human readable if """
+        if human_readable:
+            return human_readable_units(value)
+        else:
+            return str(value)
+
+
+class SystemStringifyer(Stringifyer):
+    def __init__(self, system: System) -> None:
+        self.system = system
+
+    def __str__(self) -> str:
+        """Returns a string representation of the system consisting of the
+        properties chosen on the command line."""
+        return 'System -- ' + ', '.join((
+            f'Name: {self.system["Name"]}',
+            f'Type: {self.system["Type"]}',
+            f'Version: {self.system["Version"]}'
+        ))
+
+
+class PhysicalDiskStringifyer(Stringifyer):
+    def __init__(
+        self,
+        physical_disk: PhysicalDisk,
+        arguments: SanitizedArguments
+    ) -> None:
+        super().__init__(arguments=arguments)
+        self.physical_disk = physical_disk
+
+    def __str__(self) -> str:
+        """Returns a string representation of the physical disk consisting of the
+        properties chosen on the command line."""
+        strings = []
+        for each_property in self.arguments.physical_disk_options:
+            if each_property == 'Size':
+                size = self.convert_int_to_str(
+                    self.physical_disk['Size'],
+                    self.arguments.physical_disk_size_human_readable
+                )
+                strings.append(f'Size: {size}')
+            else:
+                strings.append(
+                    f'{each_property}: {str(self.physical_disk[each_property])}'
+                )
+        return f'Physical Disk -- {", ".join(strings)}'
+
+
+class PartitionStringifyer(Stringifyer):
+    def __init__(
+        self,
+        partition: Partition,
+        arguments: SanitizedArguments
+    ) -> None:
+        super().__init__(arguments=arguments)
+        self.partition = partition
+
+    def __str__(self) -> str:
+        """Returns a string representation of the physical disk consisting of the
+        properties chosen on the command line."""
+        strings = []
+        for each_property in self.arguments.partition_options:
+            if each_property == 'Size':
+                size = self.convert_int_to_str(
+                    self.partition['Size'],
+                    self.arguments.partition_size_human_readable
+                )
+                strings.append(f'Size: {size}')
+            else:
+                strings.append(
+                    f'{each_property}: {str(self.partition[each_property])}'
+                )
+        return f'Partition -- {", ".join(strings)}'
+
+
+class LogicalDiskStringifyer(Stringifyer):
+    def __init__(
+        self,
+        logical_disk: LogicalDisk,
+        arguments: SanitizedArguments
+    ) -> None:
+        super().__init__(arguments=arguments)
+        self.logical_disk = logical_disk
+
+    def __str__(self) -> str:
+        """Returns a string representation of the physical disk consisting of the
+        properties chosen on the command line."""
+        strings = []
+        for each_property in self.arguments.logical_disk_options:
+            if each_property == 'Size':
+                size = self.convert_int_to_str(
+                    self.logical_disk['Size'],
+                    self.arguments.logical_disk_size_human_readable
+                )
+                strings.append(f'Size: {size}')
+            elif each_property == 'Free Space':
+                strings.append(
+                    f'Free Space: '
+                    f'{human_readable_units(self.logical_disk["Free Space"])}'
+                )
+            else:
+                strings.append(
+                    f'{each_property}: {str(self.logical_disk[each_property])}'
+                )
+        return f'Logical Disk -- {", ".join(strings)}'
+
+
+def stringify(
+    system_component: SystemComponent,
+    arguments: SanitizedArguments
+):
+    if isinstance(system_component, System):
+        return SystemStringifyer(system=system_component)
+    elif isinstance(system_component, PhysicalDisk):
+        return PhysicalDiskStringifyer(
+            physical_disk=system_component,
+            arguments=arguments
+        )
+    elif isinstance(system_component, Partition):
+        return PartitionStringifyer(
+            partition=system_component,
+            arguments=arguments
+        )
+    elif isinstance(system_component, LogicalDisk):
+        return LogicalDiskStringifyer(
+            logical_disk=system_component,
+            arguments=arguments
+        )
+    else:
+        return None
 
 
 def str_system(system: System) -> str:
@@ -39,25 +181,32 @@ def str_system(system: System) -> str:
     ))
 
 
+def convert_int_to_str(value: int, human_readable: bool = True) -> str:
+    """Return a string based on value. Human readable if """
+    if human_readable:
+        return human_readable_units(value)
+    else:
+        return str(value)
+
+
 def str_physical_disk(
     physical_disk: PhysicalDisk,
     arguments: SanitizedArguments
 ) -> str:
     """Returns a string representation of the physical disk consisting of the
     properties chosen on the command line."""
-    properties = arguments.physical_disk_options
     strings = []
-    for each_property in properties:
+    for each_property in arguments.physical_disk_options:
         if each_property == 'Size':
-            if arguments.physical_disk_size_human_readable:
-                size = human_readable_units(physical_disk['Size'])
-            else:
-                size = str(physical_disk['Size'])
-            strings.append(
-                f'Size: {size}'
+            size = convert_int_to_str(
+                physical_disk['Size'],
+                arguments.physical_disk_size_human_readable    
             )
+            strings.append(f'Size: {size}')
         else:
-            strings.append(f'{each_property}: {str(physical_disk[each_property])}')
+            strings.append(
+                f'{each_property}: {str(physical_disk[each_property])}'
+            )
     return f'Physical Disk -- {", ".join(strings)}'
 
 
@@ -68,13 +217,11 @@ def str_partition(partition: Partition, arguments: SanitizedArguments) -> str:
     properties = arguments.partition_options
     for each_property in properties:
         if each_property == 'Size':
-            if arguments.partition_size_human_readable:
-                size = human_readable_units(partition['Size'])
-            else:
-                size = str(partition['Size'])
-            strings.append(
-                f'Size: {size}'
+            size = convert_int_to_str(
+                partition['Size'],
+                arguments.partition_size_human_readable
             )
+            strings.append(f'Size: {size}')
         else:
             strings.append(f'{each_property}: {str(partition[each_property])}')
     return 'Partition -- ' + ', '.join(strings)
@@ -90,13 +237,11 @@ def str_logical_disk(
     properties = arguments.logical_disk_options
     for each_property in properties:
         if each_property == 'Size':
-            if arguments.logical_disk_size_human_readable:
-                size = human_readable_units(logical_disk['Size'])
-            else:
-                size = str(logical_disk['Size'])
-            strings.append(
-                f'Size: {size}'
+            size = convert_int_to_str(
+                logical_disk['Size'],
+                arguments.logical_disk_size_human_readable
             )
+            strings.append(f'Size: {size}')
         elif each_property == 'Free Space':
             strings.append(
                 f'Free Space: '
