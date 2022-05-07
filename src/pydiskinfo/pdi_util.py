@@ -148,122 +148,39 @@ class LogicalDiskStringifyer(Stringifyer):
 
 def stringify(
     system_component: SystemComponent,
-    arguments: SanitizedArguments
+    arguments: SanitizedArguments = None
 ):
+    result = None
     if isinstance(system_component, System):
-        return SystemStringifyer(system=system_component)
+        result = SystemStringifyer(system=system_component)
     elif isinstance(system_component, PhysicalDisk):
-        return PhysicalDiskStringifyer(
+        result = PhysicalDiskStringifyer(
             physical_disk=system_component,
             arguments=arguments
         )
     elif isinstance(system_component, Partition):
-        return PartitionStringifyer(
+        result = PartitionStringifyer(
             partition=system_component,
             arguments=arguments
         )
     elif isinstance(system_component, LogicalDisk):
-        return LogicalDiskStringifyer(
+        result = LogicalDiskStringifyer(
             logical_disk=system_component,
             arguments=arguments
         )
-    else:
-        return None
-
-
-def str_system(system: System) -> str:
-    """Returns a string representation of the system consisting of the
-    properties chosen on the command line."""
-    return 'System -- ' + ', '.join((
-        f'Name: {system["Name"]}',
-        f'Type: {system["Type"]}',
-        f'Version: {system["Version"]}'
-    ))
-
-
-def convert_int_to_str(value: int, human_readable: bool = True) -> str:
-    """Return a string based on value. Human readable if """
-    if human_readable:
-        return human_readable_units(value)
-    else:
-        return str(value)
-
-
-def str_physical_disk(
-    physical_disk: PhysicalDisk,
-    arguments: SanitizedArguments
-) -> str:
-    """Returns a string representation of the physical disk consisting of the
-    properties chosen on the command line."""
-    strings = []
-    for each_property in arguments.physical_disk_options:
-        if each_property == 'Size':
-            size = convert_int_to_str(
-                physical_disk['Size'],
-                arguments.physical_disk_size_human_readable    
-            )
-            strings.append(f'Size: {size}')
-        else:
-            strings.append(
-                f'{each_property}: {str(physical_disk[each_property])}'
-            )
-    return f'Physical Disk -- {", ".join(strings)}'
-
-
-def str_partition(partition: Partition, arguments: SanitizedArguments) -> str:
-    """Returns a string representation of the partition consisting of the
-    properties chosen on the command line."""
-    strings = []
-    properties = arguments.partition_options
-    for each_property in properties:
-        if each_property == 'Size':
-            size = convert_int_to_str(
-                partition['Size'],
-                arguments.partition_size_human_readable
-            )
-            strings.append(f'Size: {size}')
-        else:
-            strings.append(f'{each_property}: {str(partition[each_property])}')
-    return 'Partition -- ' + ', '.join(strings)
-
-
-def str_logical_disk(
-    logical_disk: LogicalDisk,
-    arguments: SanitizedArguments
-) -> str:
-    """Returns a string representation of the logical disk consisting of the
-    properties chosen on the command line."""
-    strings = []
-    properties = arguments.logical_disk_options
-    for each_property in properties:
-        if each_property == 'Size':
-            size = convert_int_to_str(
-                logical_disk['Size'],
-                arguments.logical_disk_size_human_readable
-            )
-            strings.append(f'Size: {size}')
-        elif each_property == 'Free Space':
-            strings.append(
-                f'Free Space: '
-                f'{human_readable_units(logical_disk["Free Space"])}'
-            )
-        else:
-            strings.append(
-                f'{each_property}: {str(logical_disk[each_property])}'
-            )
-    return 'Logical Disk -- ' + ', '.join(strings)
+    return str(result)
 
 
 def main() -> None:
     arguments = get_arguments()
     if arguments:
         system = create_system(arguments.system_name)
-        print(str_system(system))
+        print(stringify(system))
         if arguments.logical_disk_orientation:
             indent = 2
             if not arguments.list_from_partitions:
                 for each_logical_disk in system.get_logical_disks():
-                    logical_disk_string = str_logical_disk(
+                    logical_disk_string = stringify(
                         each_logical_disk,
                         arguments
                     )
@@ -276,11 +193,11 @@ def main() -> None:
                             if not each_partition.isdummy:
                                 print(
                                     f'{" "*indent}'
-                                    f'{str_partition(each_partition, arguments)}'
+                                    f'{stringify(each_partition, arguments)}'
                                 )
                                 indent += 2
                             if arguments.partition_show_physical_disk:
-                                physical_disk_string = str_physical_disk(
+                                physical_disk_string = stringify(
                                     each_partition.get_physical_disk(),
                                     arguments
                                 )
@@ -293,11 +210,11 @@ def main() -> None:
                 for each_partition in system.get_partitions():
                     print(
                         f'{" "*indent}'
-                        f'{str_partition(each_partition, arguments)}'
+                        f'{stringify(each_partition, arguments)}'
                     )
                     indent += 2
                     if arguments.partition_show_physical_disk:
-                        physical_disk_string = str_physical_disk(
+                        physical_disk_string = stringify(
                             each_partition.get_physical_disk(),
                             arguments
                         )
@@ -309,7 +226,7 @@ def main() -> None:
             indent = 2
             if not arguments.list_from_partitions:
                 for each_physical_disk in system.get_physical_disks():
-                    physical_disk_string = str_physical_disk(
+                    physical_disk_string = stringify(
                         each_physical_disk,
                         arguments
                     )
@@ -321,7 +238,7 @@ def main() -> None:
                             .get_partitions()
                         ):
                             if not each_partition.isdummy:
-                                partition_string = str_partition(
+                                partition_string = stringify(
                                     each_partition,
                                     arguments
                                 )
@@ -330,7 +247,7 @@ def main() -> None:
                             if arguments.partition_list_logical_disks:
                                 for each_logical_disk in \
                                         each_partition.get_logical_disks():
-                                    logical_disk_string = str_logical_disk(
+                                    logical_disk_string = stringify(
                                         each_logical_disk,
                                         arguments
                                     )
@@ -339,11 +256,11 @@ def main() -> None:
                     indent -= 2
             else:
                 for each_partition in system.get_partitions():
-                    print(f'{" "*indent}{str_partition(each_partition, arguments)}')
+                    print(f'{" "*indent}{stringify(each_partition, arguments)}')
                     indent += 2
                     if arguments.partition_list_logical_disks:
                         for each_logical_disk in each_partition.get_logical_disks():
-                            logical_disk_string = str_logical_disk(
+                            logical_disk_string = stringify(
                                 each_logical_disk,
                                 arguments
                             )

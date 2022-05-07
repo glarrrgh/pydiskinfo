@@ -162,7 +162,7 @@ class OutputTests(TestCase):
 class StringFunctions(TestCase):
     def test_str_system(self) -> None:
         system = get_windows_system()
-        system_string = pdi_util.str_system(system)
+        system_string = pdi_util.stringify(system)
         self.assertEqual(
             system_string,
             'System -- '
@@ -178,7 +178,7 @@ class StringFunctions(TestCase):
     ])
     def test_str_physical_disk(self) -> None:
         self.maxDiff = None
-        physical_disk_string = pdi_util.str_physical_disk(
+        physical_disk_string = pdi_util.stringify(
             get_windows_system().get_physical_disks()[0],
             get_arguments()
         )
@@ -209,7 +209,7 @@ class StringFunctions(TestCase):
     ])
     def test_str_partition(self) -> None:
         self.maxDiff = None
-        partition_string = pdi_util.str_partition(
+        partition_string = pdi_util.stringify(
             get_windows_system().get_physical_disks()[0].get_partitions()[0],
             get_arguments()
         )
@@ -238,7 +238,7 @@ class StringFunctions(TestCase):
     ])
     def test_str_logical_disk(self) -> None:
         self.maxDiff = None
-        logical_disk_string = pdi_util.str_logical_disk(
+        logical_disk_string = pdi_util.stringify(
             get_windows_system()
             .get_physical_disks()[0]
             .get_partitions()[0]
