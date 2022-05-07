@@ -108,6 +108,35 @@ class TestGetArguments(TestCase):
         self.assertTrue(sanitized_arguments.partition_size_human_readable)
         self.assertTrue(sanitized_arguments.logical_disk_size_human_readable)
 
+    def test_pydiskinfo_class_keys(self) -> None:
+        with patch('sys.argv', [
+            'pydiskinfo',
+            '-dp',
+            'PXSsidptnmcbhCfIMa',
+            '-pp',
+            'LXDbBoxpdiNcrSset',
+            '-lp',
+            'PXxdtfFUvpMSsVn',
+            '-l',
+            '-n',
+            'Some system',
+            '-p'
+        ]):
+            sanitized_arguments = get_arguments()
+        system = get_windows_system()
+        self.assertCountEqual(
+            sanitized_arguments.physical_disk_options,
+            system.get_physical_disks()[0].keys()
+        )
+        self.assertCountEqual(
+            sanitized_arguments.partition_options,
+            system.get_partitions()[0].keys()
+        )
+        self.assertCountEqual(
+            sanitized_arguments.logical_disk_options,
+            system.get_logical_disks()[0].keys()
+        )
+
 
 class TestSanitizedArgumentsClass(TestCase):
     """Tests for class SanitizedArguments"""
@@ -326,7 +355,6 @@ class TestSanitizedArgumentsClass(TestCase):
         self.assertEqual(
             sorted(
                 SanitizedArguments({'lp': 'xdtfFUvMpsVn'}).logical_disk_options
-                + ['System', 'Partitions']
             ),
             sorted(get_windows_system().get_logical_disks()[0].keys())
         )

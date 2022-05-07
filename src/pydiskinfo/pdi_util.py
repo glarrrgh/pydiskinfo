@@ -127,7 +127,7 @@ def main() -> None:
                     )
                     indent += 2
                     if arguments.logical_disk_list_partitions:
-                        for each_partition in each_logical_disk['Partitions']:
+                        for each_partition in each_logical_disk.get_partitions():
                             if not each_partition.isdummy:
                                 print(
                                     f'{" "*indent}'

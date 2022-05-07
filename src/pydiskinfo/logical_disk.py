@@ -24,14 +24,15 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from . human_readable_units import human_readable_units
 from abc import ABC
+from typing import List, Tuple
 
 
 class LogicalDisk(dict):
     """Class for logical disks/mount points"""
 
     def __init__(self, system: 'System') -> None:
-        self['System'] = system
-        self['Partitions'] = []
+        self._system: 'System' = system
+        self._partitions: List['Partition'] = []
         self['Description'] = ""
         self['Device I.D.'] = ""
         self['Type'] = ""
@@ -47,7 +48,13 @@ class LogicalDisk(dict):
 
     def add_partition(self, partition: 'Partition') -> None:
         """Add a partition to this logical disk"""
-        self['Partitions'].append(partition)
+        self._partitions.append(partition)
+
+    def get_partitions(self) -> Tuple['Partition']:
+        return tuple(self._partitions)
+
+    def get_system(self) -> 'System':
+        return self._system
 
     def __str__(self) -> str:
         return "Logical Disk -- " + ", ".join((

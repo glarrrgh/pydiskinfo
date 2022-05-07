@@ -4,8 +4,6 @@ from src.pydiskinfo.logical_disk import LogicalDisk, WindowsLogicalDisk
 
 property_list = sorted(
     [
-        'System',
-        'Partitions',
         'Description',
         'Device I.D.',
         'Type',

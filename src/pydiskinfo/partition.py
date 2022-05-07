@@ -24,6 +24,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
 from xmlrpc.client import boolean
+from typing import Tuple
 
 from . human_readable_units import human_readable_units
 
@@ -63,7 +64,7 @@ class Partition(dict):
         if new_logical_disk:
             self._logical_disks.append(logical_disk)
 
-    def get_logical_disks(self) -> tuple:
+    def get_logical_disks(self) -> tuple['LogicalDisk']:
         return tuple(self._logical_disks)
 
     def get_physical_disk(self) -> 'PhysicalDisk':
