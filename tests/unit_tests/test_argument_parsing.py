@@ -166,25 +166,10 @@ class TestSanitizedArgumentsClass(TestCase):
         logical_disk_orientation and set it to False"""
         self.assertFalse(SanitizedArguments().logical_disk_orientation)
 
-    def test_defautls_physical_disk_list_partitions(self) -> None:
-        """Test that a default SanitizedArguments produces a property
-        physical_disk_list_partitions and set it to False"""
-        self.assertFalse(SanitizedArguments().physical_disk_list_partitions)
-
-    def test_defautls_partition_list_logical_disks(self) -> None:
-        """Test that a default SanitizedArguments produces a property
-        partition_list_logical_disks and set it to False"""
-        self.assertFalse(SanitizedArguments().partition_list_logical_disks)
-
-    def test_defautls_partition_show_physical_disk(self) -> None:
-        """Test that a default SanitizedArguments produces a property
-        partition_show_physical_disk and set it to False"""
-        self.assertFalse(SanitizedArguments().partition_show_physical_disk)
-
     def test_defautls_logical_disk_list_partitions(self) -> None:
         """Test that a default SanitizedArguments produces a property
-        logical_disk_list_partitions and set it to False"""
-        self.assertFalse(SanitizedArguments().logical_disk_list_partitions)
+        list_partitions and set it to False"""
+        self.assertFalse(SanitizedArguments().list_partitions)
 
     def test_defautls_list_from_partitions(self) -> None:
         """Test that a default SanitizedArguments produces a property

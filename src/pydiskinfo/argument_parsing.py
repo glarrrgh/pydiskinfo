@@ -1,8 +1,34 @@
 from argparse import ArgumentParser, RawTextHelpFormatter
 
 
+class DisplayItem:
+    tokens: dict = {
+        'P': 'physical_disk_list_partitions',
+        's': 'Size',
+        'S': 'Size',
+        'i': 'Disk Number',
+        'd': 'Device I.D.',
+        'p': 'Path',
+        't': 'Media',
+        'n': 'Serial',
+        'm': 'Model',
+        'c': 'Sectors',
+        'h': 'Heads',
+        'C': 'Cylinders',
+        'f': 'Firmware',
+        'I': 'Interface',
+        'M': 'Media Loaded',
+        'a': 'Status'
+    }
+
+    def __init__(self, token: str) -> None:
+        self.key = self.tokens[token]
+
+
 class SanitizedArguments:
     def __init__(self, arguments: dict = None) -> None:
+        self.list_partitions = False
+        self.partitions_list_children = False
         if not arguments:
             arguments = {}
         try:
@@ -12,34 +38,34 @@ class SanitizedArguments:
         try:
             (
                 self.physical_disk_options,
-                self.physical_disk_list_partitions,
+                physical_disk_list_partitions,
                 self.physical_disk_size_human_readable
             ) = self._parse_dp(arguments['dp'])
         except KeyError:
             self.physical_disk_options = []
-            self.physical_disk_list_partitions = False
+            physical_disk_list_partitions = False
             self.physical_disk_size_human_readable = False
         try:
             (
                 self.partition_options,
-                self.partition_list_logical_disks,
-                self.partition_show_physical_disk,
+                partition_list_logical_disks,
+                partition_show_physical_disk,
                 self.partition_size_human_readable
             ) = self._parse_pp(arguments['pp'])
         except KeyError:
             self.partition_options = []
-            self.partition_list_logical_disks = False
-            self.partition_show_physical_disk = False
+            partition_list_logical_disks = False
+            partition_show_physical_disk = False
             self.partition_size_human_readable = False
         try:
             (
                 self.logical_disk_options,
-                self.logical_disk_list_partitions,
+                logical_disk_list_partitions,
                 self.logical_disk_size_human_readable
             ) = self._parse_lp(arguments['lp'])
         except KeyError:
             self.logical_disk_options = []
-            self.logical_disk_list_partitions = False
+            logical_disk_list_partitions = False
             self.logical_disk_size_human_readable = False
         try:
             self.list_from_partitions = arguments['p']
@@ -52,7 +78,18 @@ class SanitizedArguments:
                 self.system_name = ''
         except KeyError:
             self.system_name = ''
-        
+        if self.logical_disk_orientation and logical_disk_list_partitions:
+            self.list_partitions = True
+        elif not self.logical_disk_orientation \
+                and physical_disk_list_partitions:
+            self.list_partitions = True
+        if self.list_from_partitions:
+            self.list_partitions = True
+        if partition_list_logical_disks and not self.logical_disk_orientation:
+            self.partitions_list_children = True
+        elif partition_show_physical_disk and self.logical_disk_orientation:
+            self.partitions_list_children = True
+
     def _add_to_list(self, some_list: list, item: str) -> None:
         if item not in some_list:
             some_list.append(item)
@@ -148,7 +185,7 @@ class SanitizedArguments:
             show_physical_disk,
             size_human_readable
         )
-    
+
     def _parse_lp(self, arguments: str) -> tuple:
         size_human_readable = False
         list_partitions = False
@@ -323,4 +360,3 @@ normal behaviour.
     except SystemExit:
         return None
     return SanitizedArguments(vars(parsed_arguments))
-

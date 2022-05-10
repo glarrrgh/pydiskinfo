@@ -116,7 +116,7 @@ class FakeWMIcursor:
         return self._physical_disks
 
 
-def get_windows_system(configuration: list = None, name: str = '') -> System:
+def get_windows_system(name: str = '', configuration: list = None) -> System:
     """return a fake System object for test purposes"""
     with patch_windows(configuration=configuration, name=name):
         system = create_system()

@@ -30,9 +30,10 @@ from .partition import Partition
 from . system_component import SystemComponent
 
 
-class Stringifyer:
+class Stringifier:
     def __init__(self, arguments: SanitizedArguments = None) -> None:
         self.arguments = arguments
+        self.strings = []
 
     def convert_int_to_str(
         self,
@@ -46,7 +47,7 @@ class Stringifyer:
             return str(value)
 
 
-class SystemStringifyer(Stringifyer):
+class SystemStringifier(Stringifier):
     def __init__(self, system: System) -> None:
         self.system = system
 
@@ -60,7 +61,7 @@ class SystemStringifyer(Stringifyer):
         ))
 
 
-class PhysicalDiskStringifyer(Stringifyer):
+class PhysicalDiskStringifier(Stringifier):
     def __init__(
         self,
         physical_disk: PhysicalDisk,
@@ -72,6 +73,7 @@ class PhysicalDiskStringifyer(Stringifyer):
     def __str__(self) -> str:
         """Returns a string representation of the physical disk consisting of the
         properties chosen on the command line."""
+
         strings = []
         for each_property in self.arguments.physical_disk_options:
             if each_property == 'Size':
@@ -82,12 +84,13 @@ class PhysicalDiskStringifyer(Stringifyer):
                 strings.append(f'Size: {size}')
             else:
                 strings.append(
-                    f'{each_property}: {str(self.physical_disk[each_property])}'
+                    f'{each_property}: '
+                    f'{str(self.physical_disk[each_property])}'
                 )
         return f'Physical Disk -- {", ".join(strings)}'
 
 
-class PartitionStringifyer(Stringifyer):
+class PartitionStringifier(Stringifier):
     def __init__(
         self,
         partition: Partition,
@@ -114,7 +117,7 @@ class PartitionStringifyer(Stringifyer):
         return f'Partition -- {", ".join(strings)}'
 
 
-class LogicalDiskStringifyer(Stringifyer):
+class LogicalDiskStringifier(Stringifier):
     def __init__(
         self,
         logical_disk: LogicalDisk,
@@ -152,117 +155,114 @@ def stringify(
 ):
     result = None
     if isinstance(system_component, System):
-        result = SystemStringifyer(system=system_component)
+        result = SystemStringifier(system=system_component)
     elif isinstance(system_component, PhysicalDisk):
-        result = PhysicalDiskStringifyer(
+        result = PhysicalDiskStringifier(
             physical_disk=system_component,
             arguments=arguments
         )
     elif isinstance(system_component, Partition):
-        result = PartitionStringifyer(
+        result = PartitionStringifier(
             partition=system_component,
             arguments=arguments
         )
     elif isinstance(system_component, LogicalDisk):
-        result = LogicalDiskStringifyer(
+        result = LogicalDiskStringifier(
             logical_disk=system_component,
             arguments=arguments
         )
     return str(result)
 
 
+def create_item_line(
+    indent: int,
+    item: str,
+    arguments: SanitizedArguments
+) -> None:
+    return f'{" " * indent}{stringify(item, arguments)}'
+
+
+def create_partition_lines(
+    indent: int,
+    partitions: list,
+    arguments: SanitizedArguments
+) -> list[str]:
+    lines = []
+    if arguments.list_partitions:
+        for each_partition in partitions:
+            if not each_partition.isdummy:
+                lines.append(create_item_line(
+                    indent,
+                    each_partition, arguments
+                ))
+                indent += 2
+            if arguments.partitions_list_children:
+                if arguments.logical_disk_orientation:
+                    lines.append(create_item_line(
+                        indent,
+                        each_partition.get_physical_disk(),
+                        arguments
+                    ))
+                else:
+                    for each_logical_disk in \
+                            each_partition.get_logical_disks():
+                        lines.append(create_item_line(
+                            indent,
+                            each_logical_disk,
+                            arguments
+                        ))
+            indent -= 2
+    return lines
+
+
+def create_disk_lines(
+    indent: int,
+    components: list[SystemComponent],
+    arguments: SanitizedArguments
+) -> list[str]:
+    lines = []
+    for each_component in components:
+        lines.append(create_item_line(
+            indent,
+            each_component,
+            arguments
+        ))
+        indent += 2
+        lines.extend(create_partition_lines(
+            indent,
+            each_component.get_partitions(),
+            arguments
+        ))
+        indent -= 2
+    return lines
+
+
+def create_itemlines(arguments: SanitizedArguments) -> str:
+    lines = []
+    system = create_system(arguments.system_name)
+    lines.append(stringify(system))
+    if arguments.list_from_partitions:
+        lines.extend(create_partition_lines(
+            indent=2,
+            partitions=system.get_partitions(),
+            arguments=arguments
+        ))
+    elif arguments.logical_disk_orientation:
+        lines.extend(create_disk_lines(
+            indent=2,
+            components=system.get_logical_disks(),
+            arguments=arguments
+        ))
+    else:
+        lines.extend(create_disk_lines(
+            indent=2,
+            components=system.get_physical_disks(),
+            arguments=arguments
+        ))
+    return '\n'.join(lines)
+
+
 def main() -> None:
     arguments = get_arguments()
     if arguments:
-        system = create_system(arguments.system_name)
-        print(stringify(system))
-        if arguments.logical_disk_orientation:
-            indent = 2
-            if not arguments.list_from_partitions:
-                for each_logical_disk in system.get_logical_disks():
-                    logical_disk_string = stringify(
-                        each_logical_disk,
-                        arguments
-                    )
-                    print(
-                        f'{" "*indent}{logical_disk_string}'
-                    )
-                    indent += 2
-                    if arguments.logical_disk_list_partitions:
-                        for each_partition in each_logical_disk.get_partitions():
-                            if not each_partition.isdummy:
-                                print(
-                                    f'{" "*indent}'
-                                    f'{stringify(each_partition, arguments)}'
-                                )
-                                indent += 2
-                            if arguments.partition_show_physical_disk:
-                                physical_disk_string = stringify(
-                                    each_partition.get_physical_disk(),
-                                    arguments
-                                )
-                                print(
-                                    f'{" "*indent}{physical_disk_string}'
-                                )
-                            indent -= 2
-                    indent -= 2
-            else:
-                for each_partition in system.get_partitions():
-                    print(
-                        f'{" "*indent}'
-                        f'{stringify(each_partition, arguments)}'
-                    )
-                    indent += 2
-                    if arguments.partition_show_physical_disk:
-                        physical_disk_string = stringify(
-                            each_partition.get_physical_disk(),
-                            arguments
-                        )
-                        print(
-                            f'{" "*indent}{physical_disk_string}'
-                        )
-                    indent -= 2
-        else:
-            indent = 2
-            if not arguments.list_from_partitions:
-                for each_physical_disk in system.get_physical_disks():
-                    physical_disk_string = stringify(
-                        each_physical_disk,
-                        arguments
-                    )
-                    print(f'{" "*indent}{physical_disk_string}')
-                    indent += 2
-                    if arguments.physical_disk_list_partitions:
-                        for each_partition in (
-                            each_physical_disk
-                            .get_partitions()
-                        ):
-                            if not each_partition.isdummy:
-                                partition_string = stringify(
-                                    each_partition,
-                                    arguments
-                                )
-                                print(f'{" "*indent}{partition_string}')
-                                indent += 2
-                            if arguments.partition_list_logical_disks:
-                                for each_logical_disk in \
-                                        each_partition.get_logical_disks():
-                                    logical_disk_string = stringify(
-                                        each_logical_disk,
-                                        arguments
-                                    )
-                                    print(f'{" "*indent}{logical_disk_string}')
-                            indent -= 2
-                    indent -= 2
-            else:
-                for each_partition in system.get_partitions():
-                    print(f'{" "*indent}{stringify(each_partition, arguments)}')
-                    indent += 2
-                    if arguments.partition_list_logical_disks:
-                        for each_logical_disk in each_partition.get_logical_disks():
-                            logical_disk_string = stringify(
-                                each_logical_disk,
-                                arguments
-                            )
-                            print(f'{" "*indent}{logical_disk_string}')
-                    indent -= 2
+        print(create_itemlines(arguments))
