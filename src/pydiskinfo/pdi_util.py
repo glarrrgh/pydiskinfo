@@ -174,95 +174,63 @@ def stringify(
     return str(result)
 
 
-def create_item_line(
-    indent: int,
-    item: str,
-    arguments: SanitizedArguments
-) -> None:
-    return f'{" " * indent}{stringify(item, arguments)}'
+class LineAssembler:
+    def __init__(
+        self,
+        arguments: SanitizedArguments,
+        system: System = None
+    ) -> None:
+        self.indent = 0
+        self.arguments = arguments
+        if system:
+            self.system = system
+        else:
+            self.system = create_system(self.arguments.system_name)
+        self.lines: list[str] = []
+        self.create_itemlines()
 
+    def add_item_line(self, item: SystemComponent) -> None:
+        self.lines.append(
+            f'{" " * self.indent}{stringify(item, self.arguments)}'
+        )
 
-def create_partition_lines(
-    indent: int,
-    partitions: list,
-    arguments: SanitizedArguments
-) -> list[str]:
-    lines = []
-    if arguments.list_partitions:
-        for each_partition in partitions:
-            if not each_partition.isdummy:
-                lines.append(create_item_line(
-                    indent,
-                    each_partition, arguments
-                ))
-                indent += 2
-            if arguments.partitions_list_children:
-                if arguments.logical_disk_orientation:
-                    lines.append(create_item_line(
-                        indent,
-                        each_partition.get_physical_disk(),
-                        arguments
-                    ))
-                else:
-                    for each_logical_disk in \
-                            each_partition.get_logical_disks():
-                        lines.append(create_item_line(
-                            indent,
-                            each_logical_disk,
-                            arguments
-                        ))
-            indent -= 2
-    return lines
+    def create_itemlines(self) -> None:
+        self.lines.append(stringify(self.system))
+        self.indent = 2
+        if self.arguments.list_from_partitions:
+            self.create_partition_lines(self.system)
+        elif self.arguments.logical_disk_orientation:
+            self.create_disk_lines(components=self.system.get_logical_disks())
+        else:
+            self.create_disk_lines(components=self.system.get_physical_disks())
 
+    def create_partition_lines(self, component: SystemComponent) -> None:
+        if self.arguments.list_partitions:
+            for each_partition in component.get_partitions():
+                if not each_partition.isdummy:
+                    self.add_item_line(each_partition)
+                    self.indent += 2
+                if self.arguments.partitions_list_children:
+                    if self.arguments.logical_disk_orientation:
+                        self.add_item_line(each_partition.get_physical_disk())
+                    else:
+                        for each_logical_disk in \
+                                each_partition.get_logical_disks():
+                            self.add_item_line(each_logical_disk)
+                self.indent -= 2
 
-def create_disk_lines(
-    indent: int,
-    components: list[SystemComponent],
-    arguments: SanitizedArguments
-) -> list[str]:
-    lines = []
-    for each_component in components:
-        lines.append(create_item_line(
-            indent,
-            each_component,
-            arguments
-        ))
-        indent += 2
-        lines.extend(create_partition_lines(
-            indent,
-            each_component.get_partitions(),
-            arguments
-        ))
-        indent -= 2
-    return lines
+    def create_disk_lines(self, components: list[SystemComponent]) -> None:
+        for each_component in components:
+            self.add_item_line(each_component)
+            self.indent += 2
+            self.create_partition_lines(each_component)
+            self.indent -= 2
 
-
-def create_itemlines(arguments: SanitizedArguments) -> str:
-    lines = []
-    system = create_system(arguments.system_name)
-    lines.append(stringify(system))
-    if arguments.list_from_partitions:
-        lines.extend(create_partition_lines(
-            indent=2,
-            partitions=system.get_partitions(),
-            arguments=arguments
-        ))
-    elif arguments.logical_disk_orientation:
-        lines.extend(create_disk_lines(
-            indent=2,
-            components=system.get_logical_disks(),
-            arguments=arguments
-        ))
-    else:
-        lines.extend(create_disk_lines(
-            indent=2,
-            components=system.get_physical_disks(),
-            arguments=arguments
-        ))
-    return '\n'.join(lines)
+    def __str__(self) -> str:
+        return '\n'.join(self.lines)
 
 
 def main() -> None:
     arguments = get_arguments()
     if arguments:
-        print(create_itemlines(arguments))
+        print(LineAssembler(arguments))

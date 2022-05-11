@@ -263,116 +263,17 @@ class StringFunctions(TestCase):
         )
 
 
-class HelperFunctionsTests(TestCase):
-    def setUp(self) -> None:
-        self.system = get_windows_system()
+class LineAssemblerTests(TestCase):
+    def test_str_output(self) -> None:
         with patch('sys.argv', ['pydiskinfo']):
-            self.empty_arguments = get_arguments()
-        with patch('sys.argv', ['pydiskinfo', '-l']):
-            self.reverse_orientation_arguments = get_arguments()
-
-    def test_create_item_line(self) -> None:
+            arguments = get_arguments()
         self.assertRegex(
-            pdi_util.create_item_line(
-                4,
-                self.system.get_partitions()[0],
-                self.empty_arguments
-            ),
-            r'^    Partition -- [\S ]+$'
-        )
-
-    def test_create_itemlines_empty_arguments(self) -> None:
-        with patch(
-            'src.pydiskinfo.pdi_util.create_system',
-            get_windows_system
-        ):
-            result = pdi_util.create_itemlines(self.empty_arguments)
-        self.assertRegex(
-            result,
+            str(pdi_util.LineAssembler(
+                arguments,
+                get_windows_system()
+            )),
             r'^System -- [\S ]+\n'
             r'  Physical Disk -- [\S ]+\n'
             r'    Partition -- [\S ]+\n'
             r'      Logical Disk -- [\S ]+$'
-        )
-
-    def test_create_itemlines_reverse_orientation(self) -> None:
-        with patch(
-            'src.pydiskinfo.pdi_util.create_system',
-            get_windows_system
-        ):
-            result = pdi_util.create_itemlines(
-                self.reverse_orientation_arguments
-            )
-        self.assertRegex(
-            result,
-            r'^System -- [\S ]+\n'
-            r'  Logical Disk -- [\S ]+\n'
-            r'    Partition -- [\S ]+\n'
-            r'      Physical Disk -- [\S ]+$'
-        )
-
-    def test_create_partition_lines_empty_arguments(self) -> None:
-        self.assertRegex(
-            '\n'.join(pdi_util.create_partition_lines(
-                4,
-                self.system.get_partitions(),
-                self.empty_arguments
-            )),
-            r'^    Partition -- [\S ]+\n'
-            r'      Logical Disk -- [\S ]+$'
-        )
-
-    def test_create_partition_lines_reverse_orientation(self) -> None:
-        self.assertRegex(
-            '\n'.join(pdi_util.create_partition_lines(
-                4,
-                self.system.get_partitions(),
-                self.reverse_orientation_arguments
-            )),
-            r'^    Partition -- [\S ]+\n'
-            r'      Physical Disk -- [\S ]+$'
-        )
-
-    def test_create_disk_lines_physical_disk_empty_arguments(self) -> None:
-        self.assertRegex(
-            '\n'.join(pdi_util.create_disk_lines(
-                4,
-                self.system.get_physical_disks(),
-                self.empty_arguments
-            )),
-            r'^    Physical Disk -- [\S ]+\n'
-            r'      Partition -- [\S ]+\n'
-            r'        Logical Disk -- [\S ]+$'
-        )
-
-    def test_create_disk_lines_physical_disk_reverse_orientation(self) -> None:
-        self.assertRegex(
-            '\n'.join(pdi_util.create_disk_lines(
-                4,
-                self.system.get_physical_disks(),
-                self.reverse_orientation_arguments
-            )),
-            r'    Physical Disk -- [\S ]+$'
-        )
-
-    def test_create_disk_lines_logical_disk_empty_arguments(self) -> None:
-        self.assertRegex(
-            '\n'.join(pdi_util.create_disk_lines(
-                4,
-                self.system.get_logical_disks(),
-                self.empty_arguments
-            )),
-            r'    Logical Disk -- [\S ]+$'
-        )
-
-    def test_create_disk_lines_logical_disk_reverse_orientation(self) -> None:
-        self.assertRegex(
-            '\n'.join(pdi_util.create_disk_lines(
-                4,
-                self.system.get_logical_disks(),
-                self.reverse_orientation_arguments
-            )),
-            r'^    Logical Disk -- [\S ]+\n'
-            r'      Partition -- [\S ]+\n'
-            r'        Physical Disk -- [\S ]+$'
         )

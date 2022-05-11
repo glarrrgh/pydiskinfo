@@ -39,8 +39,8 @@ class Partition(SystemComponent):
     """
 
     def __init__(self, physical_disk: 'PhysicalDisk') -> None:
-        self._physical_disk = physical_disk
-        self._logical_disks = []
+        self._physical_disk: 'PhysicalDisk' = physical_disk
+        self._logical_disks: list['LogicalDisk'] = []
         self['Blocksize'] = -1
         self['Bootable'] = False
         self['Active'] = False

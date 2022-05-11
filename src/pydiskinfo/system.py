@@ -39,9 +39,9 @@ from . system_component import SystemComponent
 
 if sys.platform == 'win32':
     import wmi
-    from . logical_disk import WindowsLogicalDisk
-    from . partition import WindowsPartition
-    from . physical_disk import WindowsPhysicalDisk
+    from . logical_disk import WindowsLogicalDisk, LogicalDisk
+    from . partition import WindowsPartition, Partition
+    from . physical_disk import WindowsPhysicalDisk, PhysicalDisk
 elif sys.platform == 'linux':
     import subprocess
     try:
@@ -66,18 +66,18 @@ class System(SystemComponent):
         self._set_name(name)
         self._set_type()
         self['Version'] = 'unknown'
-        self._physical_disks = []
-        self._partitions = []
-        self._logical_disks = []
+        self._physical_disks: list[PhysicalDisk] = []
+        self._partitions: list[Partition] = []
+        self._logical_disks: list[LogicalDisk] = []
         self._parse_system()
 
-    def get_physical_disks(self) -> tuple:
+    def get_physical_disks(self) -> tuple[PhysicalDisk]:
         return tuple(self._physical_disks)
 
-    def get_partitions(self) -> tuple:
+    def get_partitions(self) -> tuple[Partition]:
         return tuple(self._partitions)
 
-    def get_logical_disks(self) -> tuple:
+    def get_logical_disks(self) -> tuple[LogicalDisk]:
         return tuple(self._logical_disks)
 
     def _set_type(self) -> None:
