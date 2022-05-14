@@ -80,6 +80,26 @@ class System(SystemComponent):
     def get_logical_disks(self) -> tuple[LogicalDisk]:
         return tuple(self._logical_disks)
 
+    def _add_logical_disk(self, logical_disk: LogicalDisk) -> LogicalDisk:
+        for each_existing_logical_disk in self.get_logical_disks():
+            if (
+                each_existing_logical_disk['Device I.D.'] ==
+                logical_disk['Device I.D.']
+            ):
+                return each_existing_logical_disk
+        self._logical_disks.append(logical_disk)
+        return logical_disk
+
+    def _add_partition(self, partition: Partition) -> Partition:
+        for each_existing_partition in self.get_partitions():
+            if (
+                each_existing_partition['Device I.D.'] ==
+                partition['Device I.D.']
+            ):
+                return each_existing_partition
+        self._partitions.append(partition)
+        return partition
+
     def _set_type(self) -> None:
         if platform:
             self['Type'] = platform.system()
@@ -272,10 +292,20 @@ class WindowsSystem(System):
             f'{platform.win32_edition()} {platform.win32_ver()[1]}'
         )
 
+    def _add_logical_disks(self, partition: wmi._wmi_object) -> None:
+        for each_logical_disk in partition.associators(
+            'Win32_LogicalDiskToPartition'
+        ):
+            logical_disk = self._add_logical_disk(
+                WindowsLogicalDisk(each_logical_disk, self)
+            )
+            logical_disk.add_partition(partition)
+            partition.add_logical_disk(logical_disk)
+
     def _parse_system(self) -> None:
         """Parse the system"""
         try:
-            cursor = wmi.WMI()
+            cursor: wmi._wmi_namespace = wmi.WMI()
         except wmi.x_access_denied as err:
             raise PyDiskInfoParseError('Access to wmi is denied.') from err
         except wmi.x_wmi_authentication as err:
@@ -288,34 +318,16 @@ class WindowsSystem(System):
             for each_partition in each_disk.associators(
                 'Win32_DiskDriveToDiskPartition'
             ):
-                partition = WindowsPartition(each_partition, disk)
-                new_partition = True
-                for each_existing_partition in self.get_partitions():
-                    if (
-                        each_existing_partition['Device I.D.'] ==
-                        partition['Device I.D.']
-                    ):
-                        partition = each_existing_partition
-                        new_partition = False
-                        break
+                partition = self._add_partition(
+                    WindowsPartition(each_partition, disk)
+                )
                 disk.add_partition(partition)
-                if new_partition:
-                    self._partitions.append(partition)
                 for each_logical_disk in each_partition.associators(
                     'Win32_LogicalDiskToPartition'
                 ):
-                    logical_disk = WindowsLogicalDisk(each_logical_disk, self)
-                    new_logical_disk = True
-                    for each_existing_logical_disk in self.get_logical_disks():
-                        if (
-                            each_existing_logical_disk['Device I.D.'] ==
-                            logical_disk['Device I.D.']
-                        ):
-                            logical_disk = each_existing_logical_disk
-                            new_logical_disk = False
-                            break
-                    if new_logical_disk:
-                        self._logical_disks.append(logical_disk)
+                    logical_disk = self._add_logical_disk(
+                        WindowsLogicalDisk(each_logical_disk, self)
+                    )
                     logical_disk.add_partition(partition)
                     partition.add_logical_disk(logical_disk)
 
