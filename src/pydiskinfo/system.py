@@ -56,10 +56,10 @@ elif sys.platform == 'linux':
 class System(SystemComponent):
     """'abstractish' class describing a system.
 
-    When you create a System object, a subclass is chosen depending on the 
+    When you create a System object, a subclass is chosen depending on the
     operating system of the host. So no pure System object will ever be created
-    unless the object is unable to recognize the operating system. In that case 
-    the object will be empty, excpet for some information about the operating 
+    unless the object is unable to recognize the operating system. In that case
+    the object will be empty, excpet for some information about the operating
     system itself. """
 
     def __init__(self, name: str = None) -> None:
@@ -292,8 +292,12 @@ class WindowsSystem(System):
             f'{platform.win32_edition()} {platform.win32_ver()[1]}'
         )
 
-    def _add_logical_disks(self, partition: wmi._wmi_object) -> None:
-        for each_logical_disk in partition.associators(
+    def _add_logical_disks(
+        self,
+        wmi_partition: wmi._wmi_object,
+        partition: Partition
+    ) -> None:
+        for each_logical_disk in wmi_partition.associators(
             'Win32_LogicalDiskToPartition'
         ):
             logical_disk = self._add_logical_disk(
@@ -301,6 +305,20 @@ class WindowsSystem(System):
             )
             logical_disk.add_partition(partition)
             partition.add_logical_disk(logical_disk)
+
+    def _add_partitions(
+        self,
+        wmi_disk: wmi._wmi_object,
+        disk: PhysicalDisk
+    ) -> None:
+        for each_partition in wmi_disk.associators(
+            'Win32_DiskDriveToDiskPartition'
+        ):
+            partition = self._add_partition(
+                WindowsPartition(each_partition, disk)
+            )
+            disk.add_partition(partition)
+            self._add_logical_disks(each_partition, partition)
 
     def _parse_system(self) -> None:
         """Parse the system"""
@@ -315,21 +333,7 @@ class WindowsSystem(System):
         for each_disk in cursor.Win32_DiskDrive():
             disk = WindowsPhysicalDisk(each_disk, self)
             self._physical_disks.append(disk)
-            for each_partition in each_disk.associators(
-                'Win32_DiskDriveToDiskPartition'
-            ):
-                partition = self._add_partition(
-                    WindowsPartition(each_partition, disk)
-                )
-                disk.add_partition(partition)
-                for each_logical_disk in each_partition.associators(
-                    'Win32_LogicalDiskToPartition'
-                ):
-                    logical_disk = self._add_logical_disk(
-                        WindowsLogicalDisk(each_logical_disk, self)
-                    )
-                    logical_disk.add_partition(partition)
-                    partition.add_logical_disk(logical_disk)
+            self._add_partitions(each_disk, disk)
 
 
 def create_system(name: str = '') -> System:
