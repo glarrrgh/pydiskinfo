@@ -31,33 +31,56 @@ from . system_component import SystemComponent
 
 
 class Stringifier:
-    def __init__(self, arguments: SanitizedArguments = None) -> None:
-        self.arguments = arguments
-        self.strings = []
+    def __init__(
+        self,
+        component: SystemComponent,
+        arguments: SanitizedArguments = None
+    ) -> None:
+        self.arguments: SanitizedArguments = arguments
+        self.strings: list[str] = []
+        self.component: SystemComponent = component
 
     def convert_int_to_str(
         self,
         value: int,
         human_readable: bool = True
     ) -> str:
-        """Return a string based on value. Human readable if """
+        """Return a string based on value. Human readable if True"""
         if human_readable:
             return human_readable_units(value)
         else:
             return str(value)
 
+    def _size_ishr(self) -> bool:
+        ...
+
+    def create_option_string(self, prop: str) -> str:
+        if prop == 'Size':
+            size = self.convert_int_to_str(
+                self.component['Size'],
+                self._size_ishr()
+            )
+            return f'Size: {size}'
+        elif prop == 'Free Space':
+            return (
+                f'Free Space: '
+                f'{human_readable_units(self.component["Free Space"])}'
+            )
+        else:
+            return f'{prop}: {str(self.component[prop])}'
+
 
 class SystemStringifier(Stringifier):
     def __init__(self, system: System) -> None:
-        self.system = system
+        super().__init__(system)
 
     def __str__(self) -> str:
         """Returns a string representation of the system consisting of the
         properties chosen on the command line."""
         return 'System -- ' + ', '.join((
-            f'Name: {self.system["Name"]}',
-            f'Type: {self.system["Type"]}',
-            f'Version: {self.system["Version"]}'
+            f'Name: {self.component["Name"]}',
+            f'Type: {self.component["Type"]}',
+            f'Version: {self.component["Version"]}'
         ))
 
 
@@ -67,26 +90,19 @@ class PhysicalDiskStringifier(Stringifier):
         physical_disk: PhysicalDisk,
         arguments: SanitizedArguments
     ) -> None:
-        super().__init__(arguments=arguments)
-        self.physical_disk = physical_disk
+        super().__init__(physical_disk, arguments)
+
+    def _size_ishr(self) -> bool:
+        return self.arguments.physical_disk_size_human_readable
 
     def __str__(self) -> str:
         """Returns a string representation of the physical disk consisting of the
         properties chosen on the command line."""
 
-        strings = []
-        for each_property in self.arguments.physical_disk_options:
-            if each_property == 'Size':
-                size = self.convert_int_to_str(
-                    self.physical_disk['Size'],
-                    self.arguments.physical_disk_size_human_readable
-                )
-                strings.append(f'Size: {size}')
-            else:
-                strings.append(
-                    f'{each_property}: '
-                    f'{str(self.physical_disk[each_property])}'
-                )
+        strings = [
+            self.create_option_string(prop) for prop
+            in self.arguments.physical_disk_options
+        ]
         return f'Physical Disk -- {", ".join(strings)}'
 
 
@@ -96,24 +112,18 @@ class PartitionStringifier(Stringifier):
         partition: Partition,
         arguments: SanitizedArguments
     ) -> None:
-        super().__init__(arguments=arguments)
-        self.partition = partition
+        super().__init__(partition, arguments)
+
+    def _size_ishr(self) -> bool:
+        return self.arguments.partition_size_human_readable
 
     def __str__(self) -> str:
         """Returns a string representation of the physical disk consisting of the
         properties chosen on the command line."""
-        strings = []
-        for each_property in self.arguments.partition_options:
-            if each_property == 'Size':
-                size = self.convert_int_to_str(
-                    self.partition['Size'],
-                    self.arguments.partition_size_human_readable
-                )
-                strings.append(f'Size: {size}')
-            else:
-                strings.append(
-                    f'{each_property}: {str(self.partition[each_property])}'
-                )
+        strings = [
+            self.create_option_string(prop) for prop
+            in self.arguments.partition_options
+        ]
         return f'Partition -- {", ".join(strings)}'
 
 
@@ -123,29 +133,18 @@ class LogicalDiskStringifier(Stringifier):
         logical_disk: LogicalDisk,
         arguments: SanitizedArguments
     ) -> None:
-        super().__init__(arguments=arguments)
-        self.logical_disk = logical_disk
+        super().__init__(logical_disk, arguments)
+
+    def _size_ishr(self) -> bool:
+        return self.arguments.logical_disk_size_human_readable
 
     def __str__(self) -> str:
         """Returns a string representation of the physical disk consisting of the
         properties chosen on the command line."""
-        strings = []
-        for each_property in self.arguments.logical_disk_options:
-            if each_property == 'Size':
-                size = self.convert_int_to_str(
-                    self.logical_disk['Size'],
-                    self.arguments.logical_disk_size_human_readable
-                )
-                strings.append(f'Size: {size}')
-            elif each_property == 'Free Space':
-                strings.append(
-                    f'Free Space: '
-                    f'{human_readable_units(self.logical_disk["Free Space"])}'
-                )
-            else:
-                strings.append(
-                    f'{each_property}: {str(self.logical_disk[each_property])}'
-                )
+        strings = [
+            self.create_option_string(prop) for prop
+            in self.arguments.logical_disk_options
+        ]
         return f'Logical Disk -- {", ".join(strings)}'
 
 
