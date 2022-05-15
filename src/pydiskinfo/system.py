@@ -22,34 +22,31 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from asyncio import subprocess
+# from asyncio import subprocess
 import sys
-import os
-import re
+# import os
+# import re
 import socket
 try:
     import platform
 except ModuleNotFoundError:
     platform = None
-from . partition import DummyPartition
-from . exceptions import PyDiskInfoParseError
+# from . partition import DummyPartition
+# from . exceptions import PyDiskInfoParseError
 from . system_component import SystemComponent
+from . logical_disk import LogicalDisk
+from . partition import Partition
+from . physical_disk import PhysicalDisk
 
-
-if sys.platform == 'win32':
-    import wmi
-    from . logical_disk import WindowsLogicalDisk, LogicalDisk
-    from . partition import WindowsPartition, Partition
-    from . physical_disk import WindowsPhysicalDisk, PhysicalDisk
-elif sys.platform == 'linux':
-    import subprocess
-    try:
-        import distro
-    except ModuleNotFoundError:
-        distro = None
-    from . logical_disk import LinuxLogicalDisk
-    from . partition import LinuxPartition
-    from . physical_disk import LinuxPhysicalDisk
+# elif sys.platform == 'linux':
+#     import subprocess
+#     try:
+#         import distro
+#     except ModuleNotFoundError:
+#         distro = None
+#     from . logical_disk import LinuxLogicalDisk
+#     from . partition import LinuxPartition
+#     from . physical_disk import LinuxPhysicalDisk
 
 
 class System(SystemComponent):
@@ -127,220 +124,220 @@ class System(SystemComponent):
         return "\n".join((system, "", *disks))
 
 
-class LinuxSystem(System):
-    """This is the linux version of the System class.
+# class LinuxSystem(System):
+#     """This is the linux version of the System class.
 
-    This class will take care of the special cases for when the module is
-    running on linux systems. The availability of certain files and tools
-    differ between linux distros and versions. Some info may be available
-    as a regular user under some circumstances. But to get the module to
-    find all variables, you will probably have to run in with raised
-    privileges.
+#     This class will take care of the special cases for when the module is
+#     running on linux systems. The availability of certain files and tools
+#     differ between linux distros and versions. Some info may be available
+#     as a regular user under some circumstances. But to get the module to
+#     find all variables, you will probably have to run in with raised
+#     privileges.
 
-    """
+#     """
 
-    def __init__(self, name: str = None) -> None:
-        super().__init__(name)
-        self._set_version()
+#     def __init__(self, name: str = None) -> None:
+#         super().__init__(name)
+#         self._set_version()
 
-    def _set_version(self):
-        """The distribution version of the system.
+#     def _set_version(self):
+#         """The distribution version of the system.
 
-        There is no 'one' way to get version information about a linux distro.
-        Kernel version would be easier, but is not really of any interest in
-        the scope of the pydiskinfo module. So we do as best we can, and
-        default to kernel version if all else fails."""
-        if distro:
-            self['Version'] = f'{distro.name()} {distro.version()}'
-        elif platform:
-            try:
-                self['Version'] = platform.linux_distribution()
-            except AttributeError:
-                try:
-                    self['Version'] = platform.dist()
-                except AttributeError:
-                    self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
-        else:
-            self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
+#         There is no 'one' way to get version information about a linux distro.
+#         Kernel version would be easier, but is not really of any interest in
+#         the scope of the pydiskinfo module. So we do as best we can, and
+#         default to kernel version if all else fails."""
+#         if distro:
+#             self['Version'] = f'{distro.name()} {distro.version()}'
+#         elif platform:
+#             try:
+#                 self['Version'] = platform.linux_distribution()
+#             except AttributeError:
+#                 try:
+#                     self['Version'] = platform.dist()
+#                 except AttributeError:
+#                     self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
+#         else:
+#             self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
 
-    def _parse_system(self) -> None:
-        block_devices = []
-        try:
-            with open('/proc/partitions', 'r') as proc_partitions:
-                for each_line in proc_partitions:
-                    match = re.match(
-                        r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*',
-                        each_line
-                    )
-                    if match:
-                        block_devices.append(match.group(1, 2, 3, 4))
-        except FileNotFoundError as err:
-            raise PyDiskInfoParseError(
-                'Missing /proc/partitions. Giving up parsing.'
-            ) from err
-        for each_device in block_devices:
-            # handeling scsi hard drives
-            if each_device[0] in ('8'):
-                if not int(each_device[1]) // 16:
-                    self['Physical Disks'].append(
-                        LinuxPhysicalDisk(
-                            self,
-                            int(each_device[0]),
-                            int(each_device[1]),
-                            int(each_device[2]),
-                            each_device[3]
-                        )
-                    )
-            # handeling metadisk (raid) devices
-            elif each_device[0] == '9':
-                # read from /proc/mdstat
-                self['Physical Disks'].append(
-                    LinuxPhysicalDisk(
-                        self,
-                        int(each_device[0]),
-                        int(each_device[1]),
-                        int(each_device[2]),
-                        each_device[3]
-                    )
-                )
-        for each_device in block_devices:
-            if int(each_device[1]) > 0:
-                disk = None
-                for each_disk in self['Physical Disks']:
-                    if str(each_disk['Major Number']) == each_device[0]:
-                        disk = each_disk
-                        break
-                partition = LinuxPartition(
-                    disk,
-                    int(each_device[0]),
-                    int(each_device[1]),
-                    int(each_device[2]),
-                    each_device[3]
-                )
-                disk.add_partition(partition)
-                self['Partitions'].append(partition)
-        logical_disks = []
-        try:
-            mounts = subprocess.run(
-                (
-                    'df',
-                    '--output=source,fstype,size,avail,target',
-                    '--local',
-                    '--block-size=1'
-                ),
-                capture_output=True,
-                text=True
-            )
-            for each_line in mounts.stdout.split('\n'):
-                match = re.search(
-                    r'(.*\w)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\/.*)',
-                    each_line
-                )
-                if match:
-                    logical_disks.append(match.groups())
-        except OSError as err:
-            raise PyDiskInfoParseError('Cant find the "df" command.') from err
-        for each_logical_disk in logical_disks:
-            logical_disk = LinuxLogicalDisk(
-                self,
-                each_logical_disk[4],
-                each_logical_disk[1],
-                int(each_logical_disk[2]),
-                int(each_logical_disk[3])
-            )
-            for each_partition in self['Partitions']:
-                if each_partition['Path'] == each_logical_disk[0]:
-                    checked_logical_disk = self._add_logical_disk(logical_disk)
-                    each_partition.add_logical_disk(checked_logical_disk)
-                    checked_logical_disk.add_partition(each_partition)
-            for each_disk in self['Physical Disks']:
-                if each_disk['Path'] == each_logical_disk[0]:
-                    checked_logical_disk = self._add_logical_disk(logical_disk)
-                    dummy_partition = DummyPartition(
-                        each_disk,
-                        checked_logical_disk
-                    )
-                    self['Partitions'].append(dummy_partition)
-                    each_disk.add_partition(dummy_partition)
-                    checked_logical_disk.add_partition(dummy_partition)
+#     def _parse_system(self) -> None:
+#         block_devices = []
+#         try:
+#             with open('/proc/partitions', 'r') as proc_partitions:
+#                 for each_line in proc_partitions:
+#                     match = re.match(
+#                         r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*',
+#                         each_line
+#                     )
+#                     if match:
+#                         block_devices.append(match.group(1, 2, 3, 4))
+#         except FileNotFoundError as err:
+#             raise PyDiskInfoParseError(
+#                 'Missing /proc/partitions. Giving up parsing.'
+#             ) from err
+#         for each_device in block_devices:
+#             # handeling scsi hard drives
+#             if each_device[0] in ('8'):
+#                 if not int(each_device[1]) // 16:
+#                     self['Physical Disks'].append(
+#                         LinuxPhysicalDisk(
+#                             self,
+#                             int(each_device[0]),
+#                             int(each_device[1]),
+#                             int(each_device[2]),
+#                             each_device[3]
+#                         )
+#                     )
+#             # handeling metadisk (raid) devices
+#             elif each_device[0] == '9':
+#                 # read from /proc/mdstat
+#                 self['Physical Disks'].append(
+#                     LinuxPhysicalDisk(
+#                         self,
+#                         int(each_device[0]),
+#                         int(each_device[1]),
+#                         int(each_device[2]),
+#                         each_device[3]
+#                     )
+#                 )
+#         for each_device in block_devices:
+#             if int(each_device[1]) > 0:
+#                 disk = None
+#                 for each_disk in self['Physical Disks']:
+#                     if str(each_disk['Major Number']) == each_device[0]:
+#                         disk = each_disk
+#                         break
+#                 partition = LinuxPartition(
+#                     disk,
+#                     int(each_device[0]),
+#                     int(each_device[1]),
+#                     int(each_device[2]),
+#                     each_device[3]
+#                 )
+#                 disk.add_partition(partition)
+#                 self['Partitions'].append(partition)
+#         logical_disks = []
+#         try:
+#             mounts = subprocess.run(
+#                 (
+#                     'df',
+#                     '--output=source,fstype,size,avail,target',
+#                     '--local',
+#                     '--block-size=1'
+#                 ),
+#                 capture_output=True,
+#                 text=True
+#             )
+#             for each_line in mounts.stdout.split('\n'):
+#                 match = re.search(
+#                     r'(.*\w)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\/.*)',
+#                     each_line
+#                 )
+#                 if match:
+#                     logical_disks.append(match.groups())
+#         except OSError as err:
+#             raise PyDiskInfoParseError('Cant find the "df" command.') from err
+#         for each_logical_disk in logical_disks:
+#             logical_disk = LinuxLogicalDisk(
+#                 self,
+#                 each_logical_disk[4],
+#                 each_logical_disk[1],
+#                 int(each_logical_disk[2]),
+#                 int(each_logical_disk[3])
+#             )
+#             for each_partition in self['Partitions']:
+#                 if each_partition['Path'] == each_logical_disk[0]:
+#                     checked_logical_disk = self._add_logical_disk(logical_disk)
+#                     each_partition.add_logical_disk(checked_logical_disk)
+#                     checked_logical_disk.add_partition(each_partition)
+#             for each_disk in self['Physical Disks']:
+#                 if each_disk['Path'] == each_logical_disk[0]:
+#                     checked_logical_disk = self._add_logical_disk(logical_disk)
+#                     dummy_partition = DummyPartition(
+#                         each_disk,
+#                         checked_logical_disk
+#                     )
+#                     self['Partitions'].append(dummy_partition)
+#                     each_disk.add_partition(dummy_partition)
+#                     checked_logical_disk.add_partition(dummy_partition)
 
-    def _add_logical_disk(self, logical_disk: 'LogicalDisk') -> 'LogicalDisk':
-        return_logical_disk = None
-        for each_logical_disk in self['Logical Disks']:
-            if each_logical_disk['Name'] == logical_disk['Name']:
-                return_logical_disk = each_logical_disk
-                break
-        if not return_logical_disk:
-            return_logical_disk = logical_disk
-            self['Logical Disks'].append(logical_disk)
-        return return_logical_disk
-
-
-class WindowsSystem(System):
-    """This is the win32 version of the System class.
-
-    This class will take care of the special cases when the module is runnning
-    on windows."""
-
-    def __init__(self, name: str = None) -> None:
-        super().__init__(name)
-        self._set_version()
-
-    def _set_version(self):
-        self['Version'] = (
-            f'{platform.win32_edition()} {platform.win32_ver()[1]}'
-        )
-
-    def _add_logical_disks(
-        self,
-        wmi_partition: wmi._wmi_object,
-        partition: Partition
-    ) -> None:
-        for each_logical_disk in wmi_partition.associators(
-            'Win32_LogicalDiskToPartition'
-        ):
-            logical_disk = self._add_logical_disk(
-                WindowsLogicalDisk(each_logical_disk, self)
-            )
-            logical_disk.add_partition(partition)
-            partition.add_logical_disk(logical_disk)
-
-    def _add_partitions(
-        self,
-        wmi_disk: wmi._wmi_object,
-        disk: PhysicalDisk
-    ) -> None:
-        for each_partition in wmi_disk.associators(
-            'Win32_DiskDriveToDiskPartition'
-        ):
-            partition = self._add_partition(
-                WindowsPartition(each_partition, disk)
-            )
-            disk.add_partition(partition)
-            self._add_logical_disks(each_partition, partition)
-
-    def _parse_system(self) -> None:
-        """Parse the system"""
-        try:
-            cursor: wmi._wmi_namespace = wmi.WMI()
-        except wmi.x_access_denied as err:
-            raise PyDiskInfoParseError('Access to wmi is denied.') from err
-        except wmi.x_wmi_authentication as err:
-            raise PyDiskInfoParseError(
-                'Authentication error when opening wmi'
-            ) from err
-        for each_disk in cursor.Win32_DiskDrive():
-            disk = WindowsPhysicalDisk(each_disk, self)
-            self._physical_disks.append(disk)
-            self._add_partitions(each_disk, disk)
+#     def _add_logical_disk(self, logical_disk: 'LogicalDisk') -> 'LogicalDisk':
+#         return_logical_disk = None
+#         for each_logical_disk in self['Logical Disks']:
+#             if each_logical_disk['Name'] == logical_disk['Name']:
+#                 return_logical_disk = each_logical_disk
+#                 break
+#         if not return_logical_disk:
+#             return_logical_disk = logical_disk
+#             self['Logical Disks'].append(logical_disk)
+#         return return_logical_disk
 
 
-def create_system(name: str = '') -> System:
-    if sys.platform == 'win32':
-        return WindowsSystem(name=name)
-    elif sys.platform == 'linux':
-        return LinuxSystem(name=name)
-    else:
-        raise PyDiskInfoParseError(
-            f'Incompatible system type "{sys.platform}"'
-        )
+# class WindowsSystem(System):
+#     """This is the win32 version of the System class.
+
+#     This class will take care of the special cases when the module is runnning
+#     on windows."""
+
+#     def __init__(self, name: str = None) -> None:
+#         super().__init__(name)
+#         self._set_version()
+
+#     def _set_version(self):
+#         self['Version'] = (
+#             f'{platform.win32_edition()} {platform.win32_ver()[1]}'
+#         )
+
+#     def _add_logical_disks(
+#         self,
+#         wmi_partition: wmi._wmi_object,
+#         partition: Partition
+#     ) -> None:
+#         for each_logical_disk in wmi_partition.associators(
+#             'Win32_LogicalDiskToPartition'
+#         ):
+#             logical_disk = self._add_logical_disk(
+#                 WindowsLogicalDisk(each_logical_disk, self)
+#             )
+#             logical_disk.add_partition(partition)
+#             partition.add_logical_disk(logical_disk)
+
+#     def _add_partitions(
+#         self,
+#         wmi_disk: wmi._wmi_object,
+#         disk: PhysicalDisk
+#     ) -> None:
+#         for each_partition in wmi_disk.associators(
+#             'Win32_DiskDriveToDiskPartition'
+#         ):
+#             partition = self._add_partition(
+#                 WindowsPartition(each_partition, disk)
+#             )
+#             disk.add_partition(partition)
+#             self._add_logical_disks(each_partition, partition)
+
+#     def _parse_system(self) -> None:
+#         """Parse the system"""
+#         try:
+#             cursor: wmi._wmi_namespace = wmi.WMI()
+#         except wmi.x_access_denied as err:
+#             raise PyDiskInfoParseError('Access to wmi is denied.') from err
+#         except wmi.x_wmi_authentication as err:
+#             raise PyDiskInfoParseError(
+#                 'Authentication error when opening wmi'
+#             ) from err
+#         for each_disk in cursor.Win32_DiskDrive():
+#             disk = WindowsPhysicalDisk(each_disk, self)
+#             self._physical_disks.append(disk)
+#             self._add_partitions(each_disk, disk)
+
+
+# def create_system(name: str = '') -> System:
+#     if sys.platform == 'win32':
+#         return WindowsSystem(name=name)
+#     elif sys.platform == 'linux':
+#         return LinuxSystem(name=name)
+#     else:
+#         raise PyDiskInfoParseError(
+#             f'Incompatible system type "{sys.platform}"'
+#         )

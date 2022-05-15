@@ -1,7 +1,7 @@
 from unittest.mock import patch
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
-from src.pydiskinfo.system import System, create_system
+from src.pydiskinfo import System, create_system
 from src.pydiskinfo.pdi_util import main
 
 
@@ -140,11 +140,13 @@ def patch_windows(
     ), patch(
         target='socket.gethostname'
     ) as fake_gethostname, patch(
+        target='src.pydiskinfo.windows_system.platform'
+    ) as fake_windows_platform, patch(
         target='src.pydiskinfo.system.platform'
-    ) as fake_platform:
-        fake_platform.win32_edition.return_value = 'test'
-        fake_platform.win32_ver.return_value = ['notused', '10']
-        fake_platform.system.return_value = 'Some type'
+    ) as fake_system_platform:
+        fake_windows_platform.win32_edition.return_value = 'test'
+        fake_windows_platform.win32_ver.return_value = ['notused', '10']
+        fake_system_platform.system.return_value = 'Some type'
         if name:
             fake_gethostname.return_value = name
         else:

@@ -3,7 +3,8 @@ from unittest.mock import patch
 from src.pydiskinfo.logical_disk import LogicalDisk
 from src.pydiskinfo.partition import Partition
 from src.pydiskinfo.physical_disk import PhysicalDisk
-from src.pydiskinfo.system import create_system, WindowsSystem
+from src.pydiskinfo import create_system
+from src.pydiskinfo.windows_system import WindowsSystem
 from src.pydiskinfo.exceptions import PyDiskInfoParseError
 from tests.fake_wmi import get_windows_system
 

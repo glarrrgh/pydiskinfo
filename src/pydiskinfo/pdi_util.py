@@ -22,12 +22,19 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 from . argument_parsing import get_arguments, SanitizedArguments
-from .system import System, create_system
+from . import (
+    System,
+    create_system,
+    PhysicalDisk,
+    LogicalDisk,
+    Partition,
+    SystemComponent
+)
 from . human_readable_units import human_readable_units
-from .physical_disk import PhysicalDisk
-from .logical_disk import LogicalDisk
-from .partition import Partition
-from . system_component import SystemComponent
+# from .physical_disk import PhysicalDisk
+# from .logical_disk import LogicalDisk
+# from .partition import Partition
+# from . system_component import SystemComponent
 
 
 class Stringifier:

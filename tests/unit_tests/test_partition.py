@@ -1,5 +1,5 @@
 from unittest import TestCase
-from src.pydiskinfo.partition import WindowsPartition
+from src.pydiskinfo.windows_system import WindowsPartition
 from tests.fake_wmi import get_windows_system
 
 
