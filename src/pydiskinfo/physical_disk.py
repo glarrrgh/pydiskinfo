@@ -21,7 +21,6 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-import wmi
 from . human_readable_units import human_readable_units
 from . system_component import SystemComponent
 
@@ -70,33 +69,3 @@ class PhysicalDisk(SystemComponent):
                         ["  " + line for line in str(partition).split("\n")])
                       for partition in self.get_partitions()]
         return "\n".join((disk, *partitions, ""))
-
-
-class LinuxPhysicalDisk(PhysicalDisk):
-    def __init__(
-        self,
-        system: SystemComponent,
-        major_number: int,
-        minor_number: int,
-        size_in_sectors: int,
-        device_name: str
-    ) -> None:
-        super().__init__(system)
-        self['Major'] = major_number
-        self['Minor'] = minor_number
-        self._set_name_and_path(device_name)
-        self._set_size_and_sectors(size_in_sectors)
-
-    def _set_size_and_sectors(
-        self,
-        sectors: int,
-        sector_size: int = 512
-    ) -> None:
-        """Sets number of sectors, sectors size, and size in bytes."""
-        self['Sectors'] = sectors
-        self['Bytes per Sector'] = sector_size
-        self['Size'] = sectors * sector_size
-
-    def _set_name_and_path(self, name):
-        self['Name'] = name
-        self['Path'] = f'/dev/{name}'

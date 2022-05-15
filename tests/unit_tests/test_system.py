@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch
-from src.pydiskinfo.logical_disk import LogicalDisk
+from src.pydiskinfo import LogicalDisk
 from src.pydiskinfo.partition import Partition
 from src.pydiskinfo.physical_disk import PhysicalDisk
 from src.pydiskinfo import create_system

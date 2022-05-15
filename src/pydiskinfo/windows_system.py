@@ -1,10 +1,9 @@
 import platform
 import wmi
-from . import System
+from . system import System, LogicalDisk
 from . import PhysicalDisk
 from . import PyDiskInfoParseError
 from . import Partition
-from . import LogicalDisk
 
 
 class WindowsSystem(System):

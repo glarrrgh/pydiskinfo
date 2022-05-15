@@ -90,27 +90,3 @@ class DummyPartition(Partition):
 
     def __str__(self) -> str:
         return str(self.get_logical_disks()[0])
-
-
-class LinuxPartition(Partition):
-    def __init__(self, 
-                disk: 'PhysicalDisk', 
-                major_number: int, 
-                minor_number: int,
-                size_in_sectors: int,
-                device_name: str
-                ) -> None:
-        super().__init__(disk)
-        self['Major Number'] = major_number
-        self['Minor Number'] = minor_number
-        self._set_device_id_and_path(device_name)
-        self._set_blocks_and_size(size_in_sectors)
-        
-    def _set_blocks_and_size(self, sectors: int, sector_size: int = 512) -> None:
-        self['Number of Blocks'] = sectors
-        self['Size'] = sectors * sector_size
-        self['Blocksize']
-
-    def _set_device_id_and_path(self, name: str) -> None:
-        self['Device I.D.'] = name
-        self['Path'] = f'/dev/{name}'
