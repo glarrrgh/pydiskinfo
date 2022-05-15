@@ -1,2 +1,2 @@
-class SystemComponent(dict):
-    pass
+# class SystemComponent(dict):
+#     pass

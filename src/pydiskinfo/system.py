@@ -28,8 +28,11 @@ try:
     import platform
 except ModuleNotFoundError:
     platform = None
-from . system_component import SystemComponent
 from . human_readable_units import human_readable_units
+
+
+class SystemComponent(dict):
+    pass
 
 
 class System(SystemComponent):
