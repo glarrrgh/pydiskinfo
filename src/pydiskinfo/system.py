@@ -31,7 +31,6 @@ try:
     import platform
 except ModuleNotFoundError:
     platform = None
-from . human_readable_units import UNITS, human_readable_units
 from . partition import DummyPartition
 from . exceptions import PyDiskInfoParseError
 from . system_component import SystemComponent
