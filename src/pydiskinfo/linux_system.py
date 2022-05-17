@@ -1,21 +1,13 @@
-from asyncio import subprocess
+import subprocess
 import os
 import re
-try:
-    import platform
-except ModuleNotFoundError:
-    platform = None
-try:
-    import distro
-except ModuleNotFoundError:
-    distro = None
 from . import System
 from . import PhysicalDisk
 from . import PyDiskInfoParseError
 from . import Partition
 from . import LogicalDisk
 from . import SystemComponent
-from . partition import DummyPartition
+from . system import DummyPartition
 
 
 class LinuxSystem(System):
@@ -41,18 +33,7 @@ class LinuxSystem(System):
         Kernel version would be easier, but is not really of any interest in
         the scope of the pydiskinfo module. So we do as best we can, and
         default to kernel version if all else fails."""
-        if distro:
-            self['Version'] = f'{distro.name()} {distro.version()}'
-        elif platform:
-            try:
-                self['Version'] = platform.linux_distribution()
-            except AttributeError:
-                try:
-                    self['Version'] = platform.dist()
-                except AttributeError:
-                    self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
-        else:
-            self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
+        self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
 
     def _parse_system(self) -> None:
         block_devices = []
@@ -73,7 +54,7 @@ class LinuxSystem(System):
             # handeling scsi hard drives
             if each_device[0] in ('8'):
                 if not int(each_device[1]) // 16:
-                    self['Physical Disks'].append(
+                    self._physical_disks.append(
                         LinuxPhysicalDisk(
                             self,
                             int(each_device[0]),
@@ -85,7 +66,7 @@ class LinuxSystem(System):
             # handeling metadisk (raid) devices
             elif each_device[0] == '9':
                 # read from /proc/mdstat
-                self['Physical Disks'].append(
+                self._physical_disks.append(
                     LinuxPhysicalDisk(
                         self,
                         int(each_device[0]),
@@ -97,8 +78,8 @@ class LinuxSystem(System):
         for each_device in block_devices:
             if int(each_device[1]) > 0:
                 disk = None
-                for each_disk in self['Physical Disks']:
-                    if str(each_disk['Major Number']) == each_device[0]:
+                for each_disk in self._physical_disks:
+                    if str(each_disk._major_number) == each_device[0]:
                         disk = each_disk
                         break
                 partition = LinuxPartition(
@@ -109,7 +90,7 @@ class LinuxSystem(System):
                     each_device[3]
                 )
                 disk.add_partition(partition)
-                self['Partitions'].append(partition)
+                self._partitions.append(partition)
         logical_disks = []
         try:
             mounts = subprocess.run(
@@ -139,31 +120,31 @@ class LinuxSystem(System):
                 int(each_logical_disk[2]),
                 int(each_logical_disk[3])
             )
-            for each_partition in self['Partitions']:
+            for each_partition in self._partitions:
                 if each_partition['Path'] == each_logical_disk[0]:
                     checked_logical_disk = self._add_logical_disk(logical_disk)
                     each_partition.add_logical_disk(checked_logical_disk)
                     checked_logical_disk.add_partition(each_partition)
-            for each_disk in self['Physical Disks']:
+            for each_disk in self._physical_disks:
                 if each_disk['Path'] == each_logical_disk[0]:
                     checked_logical_disk = self._add_logical_disk(logical_disk)
                     dummy_partition = DummyPartition(
                         each_disk,
                         checked_logical_disk
                     )
-                    self['Partitions'].append(dummy_partition)
+                    self._partitions.append(dummy_partition)
                     each_disk.add_partition(dummy_partition)
                     checked_logical_disk.add_partition(dummy_partition)
 
     def _add_logical_disk(self, logical_disk: 'LogicalDisk') -> 'LogicalDisk':
         return_logical_disk = None
-        for each_logical_disk in self['Logical Disks']:
+        for each_logical_disk in self._logical_disks:
             if each_logical_disk['Name'] == logical_disk['Name']:
                 return_logical_disk = each_logical_disk
                 break
         if not return_logical_disk:
             return_logical_disk = logical_disk
-            self['Logical Disks'].append(logical_disk)
+            self._logical_disks.append(logical_disk)
         return return_logical_disk
 
 
@@ -177,8 +158,8 @@ class LinuxPhysicalDisk(PhysicalDisk):
         device_name: str
     ) -> None:
         super().__init__(system)
-        self['Major'] = major_number
-        self['Minor'] = minor_number
+        self._major_number = major_number
+        self._minor_number = minor_number
         self._set_name_and_path(device_name)
         self._set_size_and_sectors(size_in_sectors)
 
@@ -207,8 +188,8 @@ class LinuxPartition(Partition):
         device_name: str
     ) -> None:
         super().__init__(disk)
-        self['Major Number'] = major_number
-        self['Minor Number'] = minor_number
+        self._major_number = major_number
+        self._minor_number = minor_number
         self._set_device_id_and_path(device_name)
         self._set_blocks_and_size(size_in_sectors)
 

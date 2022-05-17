@@ -1,8 +1,6 @@
 from unittest import TestCase
-from unittest.mock import patch
-from src.pydiskinfo import create_system
 from src.pydiskinfo.windows_system import WindowsSystem
-from tests.fake_wmi import FakeWMIcursor, get_windows_system
+from tests.fake_wmi import get_windows_system
 
 
 class PydiskinfoModuleTest(TestCase):
