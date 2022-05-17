@@ -26,6 +26,7 @@ class LinuxSystem(System):
     def __init__(self, name: str = None) -> None:
         super().__init__(name)
         self._set_version()
+        self['Type'] = 'Linux'
 
     def _set_version(self):
         """The distribution version of the system.
@@ -80,6 +81,31 @@ class LinuxSystem(System):
         for each_disk in physical_disks:
             each_disk.set_media_type(meida_type)
 
+    def _get_partitions_from_block_devices(
+        self,
+        block_devices: Tuple[Tuple[str]],
+        physical_disks: list['LinuxPhysicalDisk']
+    ) -> Tuple['LinuxPartition']:
+        partitions = []
+        for each_device in block_devices:
+            if int(each_device[1]) % 16 > 0:
+                disk = None
+                for each_disk in physical_disks:
+                    if str(each_disk._major_number) == each_device[0]:
+                        disk = each_disk
+                        break
+                partition = LinuxPartition(
+                    disk,
+                    int(each_device[0]),
+                    int(each_device[1]),
+                    int(each_device[2]),
+                    each_device[3]
+                )
+                if disk:
+                    disk.add_partition(partition)
+                    partitions.append(partition)
+        return tuple(partitions)
+
     def _parse_system(self) -> None:
         block_devices = self._get_block_devices()
         self._physical_disks.extend(self._get_scsi_hard_drives(block_devices))
@@ -96,23 +122,12 @@ class LinuxSystem(System):
         #                 each_device[3]
         #             )
         #         )
-        for each_device in block_devices:
-            if int(each_device[1]) > 0:
-                disk = None
-                for each_disk in self._physical_disks:
-                    if str(each_disk._major_number) == each_device[0]:
-                        disk = each_disk
-                        break
-                partition = LinuxPartition(
-                    disk,
-                    int(each_device[0]),
-                    int(each_device[1]),
-                    int(each_device[2]),
-                    each_device[3]
-                )
-                if disk:
-                    disk.add_partition(partition)
-                    self._partitions.append(partition)
+        self._partitions.extend(
+            self._get_partitions_from_block_devices(
+                block_devices,
+                self._physical_disks
+            )
+        )
         logical_disks = []
         try:
             mounts = subprocess.run(

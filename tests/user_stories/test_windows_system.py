@@ -3,7 +3,7 @@ from src.pydiskinfo.windows_system import WindowsSystem
 from tests.fake_wmi import get_windows_system
 
 
-class PydiskinfoModuleTest(TestCase):
+class WindowSystemTests(TestCase):
     """User story about developer using the module"""
     def test_module_windows(self) -> None:
         '''User stories about the module "interface" on a windows system'''
@@ -13,7 +13,7 @@ class PydiskinfoModuleTest(TestCase):
 
         # Mary tries to access some parameters from the system
         self.assertEqual(system['Name'], 'Some system')
-        self.assertEqual(system['Type'], 'Some type')
+        self.assertEqual(system['Type'], 'Windows')
         self.assertEqual(system['Version'], 'test 10')
 
         # Mary creates a new system with a name, and checks if the name is
@@ -42,16 +42,3 @@ class PydiskinfoModuleTest(TestCase):
             len(partition.get_logical_disks()),
             1
         )
-
-    # def test_module_linux(self) -> None:
-    #     '''User stories about a module "interface" on a linux system'''
-    #     # Mary generates a System object on a linux system
-    #     with patch(
-    #         target='sys.platform',
-    #         new='linux'
-    #     ), patch(
-    #         target='wmi.WMI',
-    #         new=FakeWMIcursor
-    #     ):
-    #         system = create_system()
-    #     self.assertIsInstance(system, LinuxSystem)

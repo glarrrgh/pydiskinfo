@@ -1,7 +1,7 @@
 from io import StringIO
 from unittest.mock import patch, MagicMock, Mock
 from unittest import TestCase
-from src.pydiskinfo.linux_system import LinuxSystem
+from src.pydiskinfo.linux_system import LinuxSystem, LinuxPartition
 from src.pydiskinfo import create_system
 
 
@@ -164,3 +164,16 @@ class LinuxSystemTest(TestCase):
     #     for each_physical_disk in scsi_drives:
     #         self.assertEqual(each_physical_disk['Media'], 'SATA/SCSI HD')
 
+    def test_get_partitions_from_block_devices(self) -> None:
+        with patch(
+            'src.pydiskinfo.linux_system.open',
+            side_effect=file_open_sf
+        ):
+            block_devices = self.system._get_block_devices()
+        partitions = self.system._get_partitions_from_block_devices(
+            block_devices,
+            self.system._physical_disks
+        )
+        self.assertEqual(len(partitions), 7)
+        for each_partition in partitions:
+            self.assertIsInstance(each_partition, LinuxPartition)

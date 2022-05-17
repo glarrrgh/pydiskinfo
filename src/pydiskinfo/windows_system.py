@@ -15,6 +15,7 @@ class WindowsSystem(System):
     def __init__(self, name: str = None) -> None:
         super().__init__(name)
         self._set_version()
+        self['Type'] = 'Windows'
 
     def _set_version(self):
         self['Version'] = (
