@@ -19,7 +19,14 @@ file_data = {
         '   8       51  976226304 sdd3\n'
         '   8       32  976762584 sdc\n'
         '   8       33  976759808 sdc1\n'
-
+        '   9        0 2929883136 md0\n'
+        ' 253        0  209715200 dm-0\n'
+        ' 253        1    8388608 dm-1\n'
+        ' 253        2 1734868992 dm-2\n'
+        ' 253        3 2929881088 dm-3\n'
+        ' 179        0   15558144 mmcblk0\n'
+        ' 179        1     262144 mmcblk0p1\n'
+        ' 179        2   15291904 mmcblk0p2\n'
 }
 
 df_output = (
@@ -41,6 +48,10 @@ df_output = (
     '/boot/efi\n'
     'tmpfs                         tmpfs        833916928     833916928 '
     '/run/user/1000\n'
+    '/dev/mmcblk0p2                ext4       15381823488   12274655232 '
+    '/mnt/sdcard1'
+    '/dev/mmcblk0p1                vfat         264289280     232720896 '
+    '/mnt/sdcard2'
 )
 
 
@@ -79,7 +90,64 @@ class LinuxSystemTest(TestCase):
             'src.pydiskinfo.linux_system.os'
         ) as mock_os:
             mock_os.uname.return_value = ('Linux', '', '4.19.0-20-test')
-            self.system = create_system('test system')
+            self.system: LinuxSystem = create_system('test system')
 
-    def test_system_creation(self) -> None:
+    def test_create_system(self) -> None:
         self.assertIsInstance(self.system, LinuxSystem)
+
+    def test_version(self) -> None:    
+        self.assertEqual('Linux 4.19.0-20-test', self.system['Version'])
+
+    def test_get_block_devices(self) -> None:
+        with patch(
+            'src.pydiskinfo.linux_system.open',
+            side_effect=file_open_sf
+        ):
+            self.assertTupleEqual(
+                self.system._get_block_devices(),
+                (
+                    ('8', '0', '976762584', 'sda'),
+                    ('8', '1', '976759808', 'sda1'),
+                    ('8', '16', '1953514584', 'sdb'),
+                    ('8', '17', '976761856', 'sdb1'),
+                    ('8', '18', '976750592', 'sdb2'),
+                    ('8', '48', '1953514584', 'sdd'),
+                    ('8', '49', '498688', 'sdd1'),
+                    ('8', '50', '976761856', 'sdd2'),
+                    ('8', '51', '976226304', 'sdd3'),
+                    ('8', '32', '976762584', 'sdc'),
+                    ('8', '33', '976759808', 'sdc1'),
+                    ('9', '0', '2929883136', 'md0'),
+                    ('253', '0', '209715200', 'dm-0'),
+                    ('253', '1', '8388608', 'dm-1'),
+                    ('253', '2', '1734868992', 'dm-2'),
+                    ('253', '3', '2929881088', 'dm-3'),
+                    ('179', '0', '15558144', 'mmcblk0'),
+                    ('179', '1', '262144', 'mmcblk0p1'),
+                    ('179', '2', '15291904', 'mmcblk0p2')
+                )
+            )
+
+    def test_get_scsi_hard_drives(self) -> None:
+        with patch(
+            'src.pydiskinfo.linux_system.open',
+            side_effect=file_open_sf
+        ):
+            scsi_drives = self.system._get_scsi_hard_drives(
+                self.system._get_block_devices()
+            )
+        self.assertEqual(len(scsi_drives), 4)
+        for each_physical_disk in scsi_drives:
+            self.assertEqual(each_physical_disk['Media'], 'SATA/SCSI HD')
+
+    def test_set_media_type(self) -> None:
+        with patch(
+            'src.pydiskinfo.linux_system.open',
+            side_effect=file_open_sf
+        ):
+            scsi_drives = self.system._get_scsi_hard_drives(
+                self.system._get_block_devices()
+            )
+        self.system._set_media_type(scsi_drives, 'SATA/SCSI HD')
+        for each_physical_disk in scsi_drives:
+            self.assertEqual(each_physical_disk['Media'], 'SATA/SCSI HD')

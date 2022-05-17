@@ -1,6 +1,7 @@
 import subprocess
 import os
 import re
+from typing import Tuple
 from . import System
 from . import PhysicalDisk
 from . import PyDiskInfoParseError
@@ -35,13 +36,13 @@ class LinuxSystem(System):
         default to kernel version if all else fails."""
         self['Version'] = f'{os.uname()[0]} {os.uname()[2]}'
 
-    def _parse_system(self) -> None:
+    def _get_block_devices(self) -> Tuple[Tuple[str]]:
         block_devices = []
         try:
             with open('/proc/partitions', 'r') as proc_partitions:
                 for each_line in proc_partitions:
                     match = re.match(
-                        r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\w+)\s*',
+                        r'\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s*',
                         each_line
                     )
                     if match:
@@ -50,21 +51,41 @@ class LinuxSystem(System):
             raise PyDiskInfoParseError(
                 'Missing /proc/partitions. Giving up parsing.'
             ) from err
+        return tuple(block_devices)
+
+    def _get_scsi_hard_drives(
+        self,
+        block_devices
+    ) -> Tuple['LinuxPhysicalDisk']:
+        linux_physical_disks = []
         for each_device in block_devices:
-            # handeling scsi hard drives
-            if each_device[0] in ('8'):
-                if not int(each_device[1]) // 16:
-                    self._physical_disks.append(
-                        LinuxPhysicalDisk(
-                            self,
-                            int(each_device[0]),
-                            int(each_device[1]),
-                            int(each_device[2]),
-                            each_device[3]
-                        )
+            if each_device[0] == '8' and (int(each_device[1]) % 16) == 0:
+                linux_physical_disks.append(
+                    LinuxPhysicalDisk(
+                        self,
+                        int(each_device[0]),
+                        int(each_device[1]),
+                        int(each_device[2]),
+                        each_device[3]
                     )
+                )
+        self._set_media_type(linux_physical_disks, 'SATA/SCSI HD')
+        return tuple(linux_physical_disks)
+
+    def _set_media_type(
+        self,
+        physical_disks: Tuple['LinuxPhysicalDisk'],
+        meida_type: str
+    ) -> None:
+        for each_disk in physical_disks:
+            each_disk.set_media_type(meida_type)
+
+    def _parse_system(self) -> None:
+        block_devices = self._get_block_devices()
+        self._physical_disks.extend(self._get_scsi_hard_drives(block_devices))
+        for each_device in block_devices:
             # handeling metadisk (raid) devices
-            elif each_device[0] == '9':
+            if each_device[0] == '9':
                 # read from /proc/mdstat
                 self._physical_disks.append(
                     LinuxPhysicalDisk(
@@ -89,8 +110,9 @@ class LinuxSystem(System):
                     int(each_device[2]),
                     each_device[3]
                 )
-                disk.add_partition(partition)
-                self._partitions.append(partition)
+                if disk:
+                    disk.add_partition(partition)
+                    self._partitions.append(partition)
         logical_disks = []
         try:
             mounts = subprocess.run(
@@ -176,6 +198,9 @@ class LinuxPhysicalDisk(PhysicalDisk):
     def _set_name_and_path(self, name):
         self['Name'] = name
         self['Path'] = f'/dev/{name}'
+
+    def set_media_type(self, media_type: str) -> None:
+        self['Media'] = media_type
 
 
 class LinuxPartition(Partition):
