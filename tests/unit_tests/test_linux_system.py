@@ -75,28 +75,34 @@ def subprocess_run_sf(
     return MagicMock()
 
 
+def create_linux_system(name: str = None) -> LinuxSystem:
+    if not name:
+        name = 'Some system'
+    with patch(
+        'sys.platform',
+        'linux'
+    ), patch(
+        'src.pydiskinfo.linux_system.open',
+        side_effect=file_open_sf
+    ), patch(
+        'src.pydiskinfo.linux_system.subprocess.run',
+        side_effect=subprocess_run_sf
+    ), patch(
+        'src.pydiskinfo.linux_system.os'
+    ) as mock_os:
+        mock_os.uname.return_value = ('Linux', '', '4.19.0-20-test')
+        return create_system(name)
+
+
 class LinuxSystemTest(TestCase):
-    def setUp(self) -> None:
-        with patch(
-            'sys.platform',
-            'linux'
-        ), patch(
-            'src.pydiskinfo.linux_system.open',
-            side_effect=file_open_sf
-        ), patch(
-            'src.pydiskinfo.linux_system.subprocess.run',
-            side_effect=subprocess_run_sf
-        ), patch(
-            'src.pydiskinfo.linux_system.os'
-        ) as mock_os:
-            mock_os.uname.return_value = ('Linux', '', '4.19.0-20-test')
-            self.system: LinuxSystem = create_system('test system')
-
     def test_create_system(self) -> None:
-        self.assertIsInstance(self.system, LinuxSystem)
+        self.assertIsInstance(create_linux_system(), LinuxSystem)
 
-    def test_version(self) -> None:    
-        self.assertEqual('Linux 4.19.0-20-test', self.system['Version'])
+    def test_version(self) -> None:
+        self.assertEqual(
+            'Linux 4.19.0-20-test',
+            create_linux_system()['Version']
+        )
 
     def test_get_block_devices(self) -> None:
         with patch(
@@ -104,7 +110,7 @@ class LinuxSystemTest(TestCase):
             side_effect=file_open_sf
         ):
             self.assertTupleEqual(
-                self.system._get_block_devices(),
+                create_linux_system()._get_block_devices(),
                 (
                     ('8', '0', '976762584', 'sda'),
                     ('8', '1', '976759808', 'sda1'),
@@ -133,8 +139,9 @@ class LinuxSystemTest(TestCase):
             'src.pydiskinfo.linux_system.open',
             side_effect=file_open_sf
         ):
-            scsi_drives = self.system._get_scsi_hard_drives(
-                self.system._get_block_devices()
+            system = create_linux_system()
+            scsi_drives = system._get_scsi_hard_drives(
+                system._get_block_devices()
             )
         self.assertEqual(len(scsi_drives), 4)
         for each_physical_disk in scsi_drives:
@@ -145,10 +152,11 @@ class LinuxSystemTest(TestCase):
             'src.pydiskinfo.linux_system.open',
             side_effect=file_open_sf
         ):
-            scsi_drives = self.system._get_scsi_hard_drives(
-                self.system._get_block_devices()
+            system = create_linux_system()
+            scsi_drives = system._get_scsi_hard_drives(
+                system._get_block_devices()
             )
-        self.system._set_media_type(scsi_drives, 'SATA/SCSI HD')
+        system._set_media_type(scsi_drives, 'SATA/SCSI HD')
         for each_physical_disk in scsi_drives:
             self.assertEqual(each_physical_disk['Media'], 'SATA/SCSI HD')
 
@@ -169,10 +177,11 @@ class LinuxSystemTest(TestCase):
             'src.pydiskinfo.linux_system.open',
             side_effect=file_open_sf
         ):
-            block_devices = self.system._get_block_devices()
-        partitions = self.system._get_partitions_from_block_devices(
+            system = create_linux_system()
+            block_devices = system._get_block_devices()
+        partitions = system._get_partitions_from_block_devices(
             block_devices,
-            self.system._physical_disks
+            system._physical_disks
         )
         self.assertEqual(len(partitions), 7)
         for each_partition in partitions:

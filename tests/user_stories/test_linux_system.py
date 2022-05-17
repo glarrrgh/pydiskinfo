@@ -115,8 +115,18 @@ class LinuxSystemTests(TestCase):
         self.assertEqual(len(system.get_logical_disks()), 2)
 
         # Mary checks how many partitions are under the first physical disk
-        
+        physical_disk = system.get_physical_disks()[0]
+
+        self.assertEqual(
+            len(physical_disk.get_partitions()),
+            1
+        )
 
         # Mary then checks how many logical disks are attatched to
         # that partition
+        partition = physical_disk.get_partitions()[0]
+        self.assertEqual(
+            len(partition.get_logical_disks()),
+            1
+        )
         
