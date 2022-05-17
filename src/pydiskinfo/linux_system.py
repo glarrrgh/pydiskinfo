@@ -91,7 +91,9 @@ class LinuxSystem(System):
             if int(each_device[1]) % 16 > 0:
                 disk = None
                 for each_disk in physical_disks:
-                    if str(each_disk._major_number) == each_device[0]:
+                    if str(each_disk._major_number) == each_device[0] \
+                        and each_disk._minor_number < int(each_device[1]) \
+                        and each_disk._minor_number + 16 > int(each_device[1]):
                         disk = each_disk
                         break
                 partition = LinuxPartition(

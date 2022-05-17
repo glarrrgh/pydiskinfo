@@ -186,3 +186,7 @@ class LinuxSystemTest(TestCase):
         self.assertEqual(len(partitions), 7)
         for each_partition in partitions:
             self.assertIsInstance(each_partition, LinuxPartition)
+        self.assertEqual(
+            len(create_linux_system()._physical_disks[0].get_partitions()),
+            1
+        )

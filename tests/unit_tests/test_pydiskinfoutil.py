@@ -24,7 +24,7 @@ class OutputTests(TestCase):
     def test_default_output_on_windows(self) -> None:
         self.assertRegex(
             get_windows_output(),
-            'System -- Name: Some system, Type: Some type, Version: test 10\n'
+            'System -- Name: Some system, Type: Windows, Version: test 10\n'
             r'  Physical Disk -- Disk Number: \d+, Path: Some device id, '
             'Media: Some media type, Serial: Some serial, Size: 256.05GB\n'
             r'    Partition -- Device I.D.: Partition\d+ Disk\d+, '
@@ -167,7 +167,7 @@ class StringFunctions(TestCase):
             system_string,
             'System -- '
             'Name: Some system, '
-            'Type: Some type, '
+            'Type: Windows, '
             'Version: test 10'
         )
 
