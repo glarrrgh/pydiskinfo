@@ -151,3 +151,16 @@ class LinuxSystemTest(TestCase):
         self.system._set_media_type(scsi_drives, 'SATA/SCSI HD')
         for each_physical_disk in scsi_drives:
             self.assertEqual(each_physical_disk['Media'], 'SATA/SCSI HD')
+
+    # def test_get_mmcblk_drives(self) -> None:
+    #     with patch(
+    #         'src.pydiskinfo.linux_system.open',
+    #         side_effect=file_open_sf
+    #     ):
+    #         scsi_drives = self.system._get_metadisk_drives(
+    #             self.system._get_block_devices()
+    #         )
+    #     self.assertEqual(len(scsi_drives), 4)
+    #     for each_physical_disk in scsi_drives:
+    #         self.assertEqual(each_physical_disk['Media'], 'SATA/SCSI HD')
+

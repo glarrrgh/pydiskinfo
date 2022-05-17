@@ -83,19 +83,19 @@ class LinuxSystem(System):
     def _parse_system(self) -> None:
         block_devices = self._get_block_devices()
         self._physical_disks.extend(self._get_scsi_hard_drives(block_devices))
-        for each_device in block_devices:
-            # handeling metadisk (raid) devices
-            if each_device[0] == '9':
-                # read from /proc/mdstat
-                self._physical_disks.append(
-                    LinuxPhysicalDisk(
-                        self,
-                        int(each_device[0]),
-                        int(each_device[1]),
-                        int(each_device[2]),
-                        each_device[3]
-                    )
-                )
+        # for each_device in block_devices:
+        #     # handeling metadisk (raid) devices
+        #     if each_device[0] == '9':
+        #         # read from /proc/mdstat
+        #         self._physical_disks.append(
+        #             LinuxPhysicalDisk(
+        #                 self,
+        #                 int(each_device[0]),
+        #                 int(each_device[1]),
+        #                 int(each_device[2]),
+        #                 each_device[3]
+        #             )
+        #         )
         for each_device in block_devices:
             if int(each_device[1]) > 0:
                 disk = None
