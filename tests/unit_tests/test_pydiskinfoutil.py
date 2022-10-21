@@ -4,8 +4,8 @@ import os
 from contextlib import redirect_stdout, redirect_stderr
 from io import StringIO
 from unittest.mock import patch
-from src.pydiskinfo.argument_parsing import get_arguments
-from src.pydiskinfo import pdi_util
+from argument_parsing import get_arguments
+import pdi_util as pdi_util
 from tests.fake_wmi import get_windows_system, get_windows_output
 
 
@@ -14,7 +14,7 @@ class PackageTests(TestCase):
 
         self.assertTrue(
             os.path.isfile(
-                os.path.normpath('src/pydiskinfo/__main__.py')
+                os.path.normpath('__main__.py')
                 )
             )
 

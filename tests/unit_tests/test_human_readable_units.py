@@ -1,5 +1,5 @@
 from unittest import TestCase
-from src.pydiskinfo.human_readable_units import human_readable_units
+from human_readable_units import human_readable_units
 
 
 class TestHumanReadableUnits(TestCase):

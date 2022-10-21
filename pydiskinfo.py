@@ -1,10 +1,10 @@
 import sys
 
-from . import System
-from . linux_system import LinuxSystem
-from . import PyDiskInfoParseError
+from system import System
+from linux_system import LinuxSystem
+from exceptions import PyDiskInfoParseError
 if sys.platform == 'win32':
-    from . windows_system import WindowsSystem
+    from windows_system import WindowsSystem
 
 
 def create_system(name: str = '') -> System:

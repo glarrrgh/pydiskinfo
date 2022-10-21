@@ -1,8 +1,8 @@
 from io import StringIO
 from unittest.mock import patch, MagicMock, Mock
 from unittest import TestCase
-from src.pydiskinfo.linux_system import LinuxSystem, LinuxPartition
-from src.pydiskinfo import create_system
+from linux_system import LinuxSystem, LinuxPartition
+from pydiskinfo import create_system
 
 
 file_data = {
@@ -82,13 +82,13 @@ def create_linux_system(name: str = None) -> LinuxSystem:
         'sys.platform',
         'linux'
     ), patch(
-        'src.pydiskinfo.linux_system.open',
+        'linux_system.open',
         side_effect=file_open_sf
     ), patch(
-        'src.pydiskinfo.linux_system.subprocess.run',
+        'linux_system.subprocess.run',
         side_effect=subprocess_run_sf
     ), patch(
-        'src.pydiskinfo.linux_system.os'
+        'linux_system.os'
     ) as mock_os:
         mock_os.uname.return_value = ('Linux', '', '4.19.0-20-test')
         return create_system(name)
@@ -106,7 +106,7 @@ class LinuxSystemTest(TestCase):
 
     def test_get_block_devices(self) -> None:
         with patch(
-            'src.pydiskinfo.linux_system.open',
+            'linux_system.open',
             side_effect=file_open_sf
         ):
             self.assertTupleEqual(
@@ -136,7 +136,7 @@ class LinuxSystemTest(TestCase):
 
     def test_get_scsi_hard_drives(self) -> None:
         with patch(
-            'src.pydiskinfo.linux_system.open',
+            'linux_system.open',
             side_effect=file_open_sf
         ):
             system = create_linux_system()
@@ -149,7 +149,7 @@ class LinuxSystemTest(TestCase):
 
     def test_set_media_type(self) -> None:
         with patch(
-            'src.pydiskinfo.linux_system.open',
+            'linux_system.open',
             side_effect=file_open_sf
         ):
             system = create_linux_system()
@@ -174,7 +174,7 @@ class LinuxSystemTest(TestCase):
 
     def test_get_partitions_from_block_devices(self) -> None:
         with patch(
-            'src.pydiskinfo.linux_system.open',
+            'linux_system.open',
             side_effect=file_open_sf
         ):
             system = create_linux_system()

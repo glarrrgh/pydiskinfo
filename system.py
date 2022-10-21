@@ -28,7 +28,7 @@ try:
     import platform
 except ModuleNotFoundError:
     platform = None
-from . human_readable_units import human_readable_units
+from human_readable_units import human_readable_units
 
 
 class SystemComponent(dict):

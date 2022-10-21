@@ -1,8 +1,9 @@
 from unittest.mock import patch
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
-from src.pydiskinfo import System, create_system
-from src.pydiskinfo.pdi_util import main
+from system import System
+from pydiskinfo import create_system
+from pdi_util import main
 
 
 class FakeWMILogicalDisk:
@@ -140,9 +141,9 @@ def patch_windows(
     ), patch(
         target='socket.gethostname'
     ) as fake_gethostname, patch(
-        target='src.pydiskinfo.windows_system.platform'
+        target='windows_system.platform'
     ) as fake_windows_platform, patch(
-        target='src.pydiskinfo.system.platform'
+        target='system.platform'
     ) as fake_system_platform:
         fake_windows_platform.win32_edition.return_value = 'test'
         fake_windows_platform.win32_ver.return_value = ['notused', '10']
@@ -176,7 +177,7 @@ def get_windows_output(
         main()
     if error_stream.getvalue():
         raise AssertionError(
-            'pydiskinfo.pdi_util.main returned some errors\n'
+            'pdi_util.main returned some errors\n'
             f'stderr:\n{error_stream.getvalue()}\n'
             f'stdout:\n{output_stream.getvalue()}\n'
         )

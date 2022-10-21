@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch
-from tests.fake_wmi import get_windows_system
-from src.pydiskinfo.argument_parsing import get_arguments, SanitizedArguments
+from fake_wmi import get_windows_system
+from argument_parsing import get_arguments, SanitizedArguments
 
 
 class TestGetArguments(TestCase):

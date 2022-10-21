@@ -1,6 +1,6 @@
 from unittest import TestCase
-from src.pydiskinfo import LogicalDisk
-from src.pydiskinfo.windows_system import WindowsLogicalDisk
+from system import LogicalDisk
+from windows_system import WindowsLogicalDisk
 
 
 property_list = sorted(

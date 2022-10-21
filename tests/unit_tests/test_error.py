@@ -1,5 +1,5 @@
 from unittest import TestCase
-from src.pydiskinfo.exceptions import PyDiskInfoParseError
+from exceptions import PyDiskInfoParseError
 
 
 class ErrorTests(TestCase):

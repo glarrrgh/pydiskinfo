@@ -2,13 +2,15 @@ import subprocess
 import os
 import re
 from typing import Tuple
-from . import System
-from . import PhysicalDisk
-from . import PyDiskInfoParseError
-from . import Partition
-from . import LogicalDisk
-from . import SystemComponent
-from . system import DummyPartition
+from system import (
+    System,
+    Partition,
+    PhysicalDisk,
+    LogicalDisk,
+    SystemComponent,
+    DummyPartition
+)
+from exceptions import PyDiskInfoParseError
 
 
 class LinuxSystem(System):
@@ -91,9 +93,11 @@ class LinuxSystem(System):
             if int(each_device[1]) % 16 > 0:
                 disk = None
                 for each_disk in physical_disks:
-                    if str(each_disk._major_number) == each_device[0] \
-                        and each_disk._minor_number < int(each_device[1]) \
-                        and each_disk._minor_number + 16 > int(each_device[1]):
+                    if str(
+                        each_disk._major_number
+                    ) == each_device[0] and each_disk._minor_number < int(
+                        each_device[1]
+                    ) and each_disk._minor_number + 16 > int(each_device[1]):
                         disk = each_disk
                         break
                 partition = LinuxPartition(

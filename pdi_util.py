@@ -21,15 +21,15 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-from . argument_parsing import get_arguments, SanitizedArguments
-from . import (
-    create_system,
+from argument_parsing import get_arguments, SanitizedArguments
+from system import (
     PhysicalDisk,
     Partition,
     SystemComponent
 )
-from . system import System, LogicalDisk
-from . human_readable_units import human_readable_units
+from pydiskinfo import create_system
+from system import System, LogicalDisk
+from human_readable_units import human_readable_units
 # from .physical_disk import PhysicalDisk
 # from .logical_disk import LogicalDisk
 # from .partition import Partition
